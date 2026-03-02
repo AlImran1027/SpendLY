@@ -16,6 +16,9 @@ import 'screens/receipt_preview_screen.dart';
 import 'screens/extraction_results_screen.dart';
 import 'screens/expense_entry_screen.dart';
 import 'screens/expense_detail_screen.dart';
+import 'screens/forgot_password_screen.dart';
+import 'screens/change_password_screen.dart';
+import 'screens/reset_password_screen.dart';
 import 'utils/constants.dart';
 
 void main() {
@@ -79,6 +82,9 @@ class SpendlyApp extends StatelessWidget {
         AppConstants.extractionResultsRoute: (_) => const ExtractionResultsScreen(),
         AppConstants.expenseEntryRoute: (_) => const ExpenseEntryScreen(),
         AppConstants.expenseDetailRoute: (_) => const ExpenseDetailScreen(),
+        AppConstants.forgotPasswordRoute: (_) => const ForgotPasswordScreen(),
+        AppConstants.changePasswordRoute: (_) => const ChangePasswordScreen(),
+        AppConstants.resetPasswordRoute: (_) => const ResetPasswordScreen(),
       },
     );
   }

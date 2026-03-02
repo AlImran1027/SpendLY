@@ -174,78 +174,9 @@ class _LoginScreenState extends State<LoginScreen>
     }
   }
 
-  /// Shows a placeholder bottom sheet for "Forgot Password".
+  /// Navigates to the Forgot Password screen.
   void _handleForgotPassword() {
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(AppConstants.borderRadiusLarge),
-        ),
-      ),
-      builder: (context) {
-        return Padding(
-          padding: const EdgeInsets.all(AppConstants.paddingLarge),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Drag handle
-              Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: AppConstants.textLightGray,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              const SizedBox(height: AppConstants.paddingLarge),
-              const Icon(
-                Icons.lock_reset,
-                size: 56,
-                color: AppConstants.primaryGreen,
-              ),
-              const SizedBox(height: AppConstants.paddingMedium),
-              const Text(
-                'Reset Password',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: AppConstants.textDark,
-                ),
-              ),
-              const SizedBox(height: AppConstants.paddingSmall),
-              const Text(
-                'Password reset functionality will be available\nonce the backend is connected.',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: AppConstants.textMediumGray,
-                ),
-              ),
-              const SizedBox(height: AppConstants.paddingLarge),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton(
-                  onPressed: () => Navigator.pop(context),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppConstants.primaryGreen,
-                    side: const BorderSide(color: AppConstants.primaryGreen),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(
-                        AppConstants.borderRadiusMedium,
-                      ),
-                    ),
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                  ),
-                  child: const Text('Got it'),
-                ),
-              ),
-              const SizedBox(height: AppConstants.paddingMedium),
-            ],
-          ),
-        );
-      },
-    );
+    Navigator.pushNamed(context, AppConstants.forgotPasswordRoute);
   }
 
   /// Navigates to the registration screen.
