@@ -15,7 +15,6 @@ import '../utils/constants.dart';
 import 'receipt_capture_screen.dart';
 import 'home_screen.dart';
 import 'expenses_screen.dart';
-import 'budget_screen.dart';
 import 'analytics_screen.dart';
 import 'profile_screen.dart';
 
@@ -29,12 +28,12 @@ class MainNavShell extends StatefulWidget {
 class _MainNavShellState extends State<MainNavShell> {
   int _currentIndex = 0;
 
-  /// The five tab screens. Using IndexedStack keeps each screen alive when
+  /// The four tab screens. Using IndexedStack keeps each screen alive when
   /// the user switches tabs, preserving scroll position and state.
+  /// Budget is accessible via the edit button on the Home spending card.
   final List<Widget> _screens = const [
     HomeScreen(),
     ExpensesScreen(),
-    BudgetScreen(),
     AnalyticsScreen(),
     ProfileScreen(),
   ];
@@ -203,55 +202,131 @@ class _MainNavShellState extends State<MainNavShell> {
       ),
 
       // ── Floating Action Button — receipt capture ──────────────────────────
-      floatingActionButton: FloatingActionButton.large(
+      floatingActionButton: FloatingActionButton(
         onPressed: _openReceiptCapture,
         backgroundColor: AppConstants.primaryGreen,
         foregroundColor: Colors.white,
         elevation: 6,
         shape: const CircleBorder(),
-        child: const Icon(Icons.add_a_photo_outlined, size: 32),
+        child: const Icon(Icons.add_a_photo_outlined, size: 26),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
 
-      // ── Bottom Navigation Bar ─────────────────────────────────────────────
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _currentIndex,
-        onDestinationSelected: _onTabTapped,
-        backgroundColor: AppConstants.backgroundColor,
-        surfaceTintColor: Colors.transparent,
-        indicatorColor: AppConstants.primaryGreen.withValues(alpha: 0.12),
-        height: 72,
-        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home, color: AppConstants.primaryGreen),
-            label: 'Home',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.receipt_long_outlined),
-            selectedIcon:
-                Icon(Icons.receipt_long, color: AppConstants.primaryGreen),
-            label: 'Expenses',
-          ),
-          // Spacer for centre FAB
-          NavigationDestination(
-            icon: SizedBox.shrink(),
-            label: '',
-            enabled: false,
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.analytics_outlined),
-            selectedIcon:
-                Icon(Icons.analytics, color: AppConstants.primaryGreen),
-            label: 'Analytics',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.person_outline),
-            selectedIcon: Icon(Icons.person, color: AppConstants.primaryGreen),
-            label: 'Profile',
-          ),
-        ],
+      // ── Bottom App Bar with notch for centre FAB ──────────────────────────
+      bottomNavigationBar: BottomAppBar(
+        shape: const CircularNotchedRectangle(),
+        notchMargin: 8,
+        color: AppConstants.backgroundColor,
+        elevation: 8,
+        padding: EdgeInsets.zero,
+        height: 70,
+        child: Row(
+          children: [
+            // ── Left: Home, Expenses ──
+            _NavItem(
+              index: 0,
+              currentIndex: _currentIndex,
+              icon: Icons.home_outlined,
+              selectedIcon: Icons.home,
+              label: 'Home',
+              onTap: _onTabTapped,
+            ),
+            _NavItem(
+              index: 1,
+              currentIndex: _currentIndex,
+              icon: Icons.receipt_long_outlined,
+              selectedIcon: Icons.receipt_long,
+              label: 'Expenses',
+              onTap: _onTabTapped,
+            ),
+            // ── Centre gap for FAB notch ──
+            const Expanded(child: SizedBox()),
+            // ── Right: Analytics, Profile ──
+            _NavItem(
+              index: 2,
+              currentIndex: _currentIndex,
+              icon: Icons.analytics_outlined,
+              selectedIcon: Icons.analytics,
+              label: 'Analytics',
+              onTap: _onTabTapped,
+            ),
+            _NavItem(
+              index: 3,
+              currentIndex: _currentIndex,
+              icon: Icons.person_outline,
+              selectedIcon: Icons.person,
+              label: 'Profile',
+              onTap: _onTabTapped,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Nav item widget ──────────────────────────────────────────────────────────
+
+class _NavItem extends StatelessWidget {
+  const _NavItem({
+    required this.index,
+    required this.currentIndex,
+    required this.icon,
+    required this.selectedIcon,
+    required this.label,
+    required this.onTap,
+  });
+
+  final int index;
+  final int currentIndex;
+  final IconData icon;
+  final IconData selectedIcon;
+  final String label;
+  final void Function(int) onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final selected = index == currentIndex;
+
+    return Expanded(
+      child: InkWell(
+        onTap: () => onTap(index),
+        splashColor: Colors.transparent,
+        highlightColor: Colors.transparent,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+              decoration: BoxDecoration(
+                color: selected
+                    ? AppConstants.primaryGreen.withValues(alpha: 0.12)
+                    : Colors.transparent,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Icon(
+                selected ? selectedIcon : icon,
+                size: 22,
+                color: selected
+                    ? AppConstants.primaryGreen
+                    : AppConstants.textMediumGray,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight:
+                    selected ? FontWeight.w600 : FontWeight.w400,
+                color: selected
+                    ? AppConstants.primaryGreen
+                    : AppConstants.textMediumGray,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

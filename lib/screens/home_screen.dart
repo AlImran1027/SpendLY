@@ -172,8 +172,8 @@ class _HomeScreenState extends State<HomeScreen> {
             totalSpent: '\$208.63',
             monthLabel: _currentMonthLabel,
             budgetTotal: 500,
-            onTap: () {
-              // TODO: Navigate to budget details
+            onEditTap: () {
+              Navigator.pushNamed(context, AppConstants.budgetRoute);
             },
           ),
         ),

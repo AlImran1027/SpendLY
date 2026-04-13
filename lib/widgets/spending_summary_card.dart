@@ -14,6 +14,7 @@ class SpendingSummaryCard extends StatelessWidget {
     required this.monthLabel,
     this.budgetTotal,
     this.onTap,
+    this.onEditTap,
   });
 
   /// Formatted total (e.g. "\$1,234.56").
@@ -25,8 +26,11 @@ class SpendingSummaryCard extends StatelessWidget {
   /// Optional total budget — if provided, a progress indicator is shown.
   final double? budgetTotal;
 
-  /// Callback when the card is tapped (navigates to budget details).
+  /// Callback when the card body is tapped.
   final VoidCallback? onTap;
+
+  /// Callback for the edit (pencil) button — navigates to the Budget screen.
+  final VoidCallback? onEditTap;
 
   @override
   Widget build(BuildContext context) {
@@ -56,16 +60,27 @@ class SpendingSummaryCard extends StatelessWidget {
         ),
         child: Stack(
           children: [
-            // ── Decorative background icon ──
-            Positioned(
-              right: -8,
-              top: -8,
-              child: Icon(
-                Icons.account_balance_wallet_outlined,
-                size: 80,
-                color: Colors.white.withValues(alpha: 0.08),
+            // ── Edit button (top-right) ──
+            if (onEditTap != null)
+              Positioned(
+                top: 0,
+                right: 0,
+                child: GestureDetector(
+                  onTap: onEditTap,
+                  child: Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.18),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(
+                      Icons.edit_outlined,
+                      size: 16,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
               ),
-            ),
 
             // ── Content ──
             Column(
