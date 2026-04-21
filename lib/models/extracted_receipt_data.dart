@@ -13,15 +13,23 @@ class ExtractedItem {
   double subtotal;
   double confidence; // 0.0 – 1.0
 
+  /// VAT/tax rate as a percentage (e.g. 15.0 for 15%). Null if not on receipt.
+  double? vatRate;
+
+  /// VAT/tax amount for this line item. Null if not on receipt.
+  double? vatAmount;
+
   ExtractedItem({
     required this.name,
     this.quantity = 1.0,
     this.unitPrice = 0.0,
     required this.subtotal,
     this.confidence = 0.0,
+    this.vatRate,
+    this.vatAmount,
   });
 
-  /// Creates an [ExtractedItem] from a JSON map (Gemini API response).
+  /// Creates an [ExtractedItem] from a JSON map.
   factory ExtractedItem.fromJson(Map<String, dynamic> json) {
     return ExtractedItem(
       name: json['name'] as String? ?? '',
@@ -29,6 +37,8 @@ class ExtractedItem {
       unitPrice: (json['unit_price'] as num?)?.toDouble() ?? 0.0,
       subtotal: (json['subtotal'] as num?)?.toDouble() ?? 0.0,
       confidence: (json['confidence'] as num?)?.toDouble() ?? 0.0,
+      vatRate: (json['vat_rate'] as num?)?.toDouble(),
+      vatAmount: (json['vat_amount'] as num?)?.toDouble(),
     );
   }
 
@@ -39,7 +49,12 @@ class ExtractedItem {
         'unit_price': unitPrice,
         'subtotal': subtotal,
         'confidence': confidence,
+        if (vatRate != null) 'vat_rate': vatRate,
+        if (vatAmount != null) 'vat_amount': vatAmount,
       };
+
+  /// True when this item has VAT information.
+  bool get hasVat => vatRate != null || vatAmount != null;
 }
 
 /// The overall extraction status from the AI.
@@ -55,6 +70,9 @@ class ExtractedReceiptData {
 
   double totalAmount;
   double totalConfidence;
+
+  /// Total VAT/tax amount shown on the receipt (null if not present).
+  double? taxAmount;
 
   List<ExtractedItem> items;
 
@@ -77,6 +95,7 @@ class ExtractedReceiptData {
     this.dateConfidence = 0.0,
     this.totalAmount = 0.0,
     this.totalConfidence = 0.0,
+    this.taxAmount,
     List<ExtractedItem>? items,
     this.category = 'Others',
     this.categoryConfidence = 0.0,
@@ -123,6 +142,7 @@ class ExtractedReceiptData {
       totalAmount: (json['total_amount'] as num?)?.toDouble() ?? 0.0,
       totalConfidence:
           (json['total_confidence'] as num?)?.toDouble() ?? 0.0,
+      taxAmount: (json['tax_amount'] as num?)?.toDouble(),
       items: itemsList,
       category: json['category'] as String? ?? 'Others',
       categoryConfidence:
@@ -143,6 +163,7 @@ class ExtractedReceiptData {
         'date_confidence': dateConfidence,
         'total_amount': totalAmount,
         'total_confidence': totalConfidence,
+        if (taxAmount != null) 'tax_amount': taxAmount,
         'items': items.map((e) => e.toJson()).toList(),
         'category': category,
         'category_confidence': categoryConfidence,

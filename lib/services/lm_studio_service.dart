@@ -233,16 +233,19 @@ Return ONLY a valid JSON object with this exact structure (no markdown, no comme
 {
   "merchant_name": "store or restaurant name, empty string if not visible",
   "merchant_confidence": 0.95,
-  "date": "YYYY-MM-DD or null",
+  "date": "DD-MM-YYYY or null",
   "date_confidence": 0.90,
   "total_amount": 0.00,
   "total_confidence": 0.95,
+  "tax_amount": 0.00,
   "items": [
     {
       "name": "item description",
       "quantity": 1.0,
       "unit_price": 0.00,
       "subtotal": 0.00,
+      "vat_rate": 15.0,
+      "vat_amount": 0.00,
       "confidence": 0.90
     }
   ],
@@ -257,6 +260,8 @@ Rules:
 - date must be ISO format YYYY-MM-DD or null
 - Extract ALL line items visible on the receipt
 - total_amount is the grand total (including tax if shown)
+- tax_amount is the total VAT/tax line shown on the receipt; omit the field (do not include it) if no tax line is visible
+- For each item: if a VAT rate is printed next to the item, set vat_rate (percentage, e.g. 15.0) and compute vat_amount; omit both fields if no per-item VAT is shown
 - Return ONLY the JSON object, no other text
 ''';
 }

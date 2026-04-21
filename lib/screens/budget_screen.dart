@@ -319,44 +319,40 @@ class _BudgetScreenState extends State<BudgetScreen> {
             ],
           ),
           const SizedBox(height: 10),
+          // Spent amount
+          const Text('Spent',
+              style: TextStyle(fontSize: 11, color: Colors.white54)),
+          const SizedBox(height: 4),
+          Text(
+            CurrencyService.instance.format(_totalSpent),
+            style: const TextStyle(
+              fontSize: 28,
+              fontWeight: FontWeight.w800,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 10),
+          // Budget + Left pills on the same row
           Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('Spent',
-                      style: TextStyle(fontSize: 11, color: Colors.white54)),
-                  Text(
-                    CurrencyService.instance.format(_totalSpent),
-                    style: const TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.w800,
-                      color: Colors.white,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(width: AppConstants.paddingLarge),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('Budget',
-                      style: TextStyle(fontSize: 11, color: Colors.white54)),
-                  Text(
-                    CurrencyService.instance.format(_totalBudget),
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white70,
-                    ),
-                  ),
-                ],
-              ),
-              const Spacer(),
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  '${CurrencyService.instance.format(_totalBudget, decimals: 0)} budget',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white70,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(20),
