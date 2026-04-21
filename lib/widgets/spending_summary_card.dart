@@ -5,6 +5,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import '../services/currency_service.dart';
 import '../utils/constants.dart';
 
 class SpendingSummaryCard extends StatelessWidget {
@@ -12,6 +13,7 @@ class SpendingSummaryCard extends StatelessWidget {
     super.key,
     required this.totalSpent,
     required this.monthLabel,
+    this.spentAmount,
     this.budgetTotal,
     this.onTap,
     this.onEditTap,
@@ -22,6 +24,9 @@ class SpendingSummaryCard extends StatelessWidget {
 
   /// Month label (e.g. "February 2026").
   final String monthLabel;
+
+  /// Raw numeric spent amount — used for budget progress calculation.
+  final double? spentAmount;
 
   /// Optional total budget — if provided, a progress indicator is shown.
   final double? budgetTotal;
@@ -143,12 +148,7 @@ class SpendingSummaryCard extends StatelessWidget {
   }
 
   Widget _buildBudgetProgress() {
-    // Parse the amount from the formatted string for progress calculation.
-    // In production this would come from a numeric value directly.
-    final spent = double.tryParse(
-          totalSpent.replaceAll(RegExp(r'[^\d.]'), ''),
-        ) ??
-        0;
+    final spent = spentAmount ?? 0.0;
     final progress = budgetTotal! > 0 ? (spent / budgetTotal!).clamp(0.0, 1.0) : 0.0;
 
     return Column(
@@ -158,7 +158,7 @@ class SpendingSummaryCard extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              'Budget: \$${budgetTotal!.toStringAsFixed(0)}',
+              'Budget: ${CurrencyService.instance.format(budgetTotal!, decimals: 0)}',
               style: const TextStyle(
                 fontSize: 12,
                 color: Colors.white70,

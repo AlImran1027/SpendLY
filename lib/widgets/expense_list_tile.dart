@@ -15,7 +15,7 @@ class ExpenseListTile extends StatelessWidget {
     required this.category,
     required this.amount,
     required this.date,
-    this.onTap,
+    this.onTap, // Optional callback for when the tile is tapped to view details
   });
 
   /// Merchant name or expense title.
@@ -82,7 +82,7 @@ class ExpenseListTile extends StatelessWidget {
     final color = _categoryColor();
 
     return InkWell(
-      onTap: onTap,
+      onTap: onTap, // Make the whole tile tappable to open details
       borderRadius:
           BorderRadius.circular(AppConstants.borderRadiusMedium),
       child: Padding(

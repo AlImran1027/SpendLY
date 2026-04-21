@@ -25,9 +25,12 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:intl/intl.dart';
+import 'package:intl/intl.dart' show DateFormat;
 
+import '../models/expense.dart';
 import '../models/extracted_receipt_data.dart';
+import '../services/currency_service.dart';
+import '../services/database_service.dart';
 import '../utils/constants.dart';
 
 // ─── Route Arguments ──────────────────────────────────────────────────────────
@@ -53,7 +56,7 @@ class ExpenseEntryArgs {
 
 /// Lightweight model for each line-item row in the form.
 class _FormItem {
-  final TextEditingController nameCtrl;
+  final TextEditingController nameCtrl; // Item name 
   final TextEditingController qtyCtrl;
   final TextEditingController priceCtrl;
   final GlobalKey<FormFieldState<String>> nameKey;
@@ -62,7 +65,7 @@ class _FormItem {
 
   _FormItem()
       : nameCtrl = TextEditingController(),
-        qtyCtrl = TextEditingController(text: '1'),
+        qtyCtrl = TextEditingController(text: '1'), // default quantity is 1
         priceCtrl = TextEditingController(),
         nameKey = GlobalKey<FormFieldState<String>>(),
         qtyKey = GlobalKey<FormFieldState<String>>(),
@@ -130,6 +133,9 @@ class _ExpenseEntryScreenState extends State<ExpenseEntryScreen>
   bool _formDirty = false; // tracks unsaved changes
   bool _argsRead = false;
 
+  int? _existingExpenseId;
+  ExtractedReceiptData? _extractedData;
+
   // ─── Autocomplete Suggestions ─────────────────────────────────────────────
 
   /// In production this would come from SQLite; for now use demo data.
@@ -170,17 +176,18 @@ class _ExpenseEntryScreenState extends State<ExpenseEntryScreen>
   }
 
   @override
-  void didChangeDependencies() {
+  void didChangeDependencies() { 
     super.didChangeDependencies();
     if (_argsRead) return;
-    _argsRead = true;
+    _argsRead = true;  
 
     final args = ModalRoute.of(context)?.settings.arguments;
     if (args is ExpenseEntryArgs) {
       _isEditMode = args.isEditMode;
-      // args.existingExpenseId reserved for SQLite edit-mode lookup.
+      _existingExpenseId = args.existingExpenseId;
 
       if (args.extractedData != null) {
+        _extractedData = args.extractedData;
         _prefillFromExtraction(args.extractedData!);
         _isPreFilled = true;
       }
@@ -284,7 +291,7 @@ class _ExpenseEntryScreenState extends State<ExpenseEntryScreen>
     if (_items.length <= 1) return; // keep at least one
     setState(() {
       _items[index].dispose();
-      _items.removeAt(index);
+      _items.removeAt(index); // remove item from list and refresh total
     });
     _onItemChanged();
   }
@@ -411,10 +418,51 @@ class _ExpenseEntryScreenState extends State<ExpenseEntryScreen>
 
     setState(() => _isSaving = true);
 
-    // TODO: save to SQLite via ExpenseDao.
-    await Future.delayed(const Duration(seconds: 1));
-    if (!mounted) return;
+    final now = DateTime.now();
+    final expenseItems = _items
+        .map((f) => ExpenseItem(
+              name: f.nameCtrl.text.trim(),
+              quantity: f.quantity,
+              unitPrice: f.unitPrice,
+              subtotal: f.subtotal,
+            ))
+        .toList();
 
+    final expense = Expense(
+      id: _isEditMode ? _existingExpenseId : null,
+      merchantName: _merchantCtrl.text.trim(),
+      category: _selectedCategory,
+      totalAmount: _totalAmount,
+      date: _selectedDate!,
+      paymentMethod: _paymentMethod,
+      notes: _notesCtrl.text.trim(),
+      imagePath: _extractedData?.imagePath ?? '',
+      aiConfidence: _isPreFilled ? _extractedData?.totalConfidence : null,
+      createdAt: now,
+      modifiedAt: now,
+      items: expenseItems,
+    );
+
+    try {
+      if (_isEditMode && _existingExpenseId != null) {
+        await DatabaseService.instance.updateExpense(expense);
+      } else {
+        await DatabaseService.instance.insertExpense(expense);
+      }
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _isSaving = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Failed to save expense. Please try again.'),
+          backgroundColor: AppConstants.errorRed,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    if (!mounted) return;
     setState(() => _isSaving = false);
 
     Navigator.popUntil(context, (route) => route.isFirst);
@@ -475,8 +523,9 @@ class _ExpenseEntryScreenState extends State<ExpenseEntryScreen>
     );
     if (confirmed != true || !mounted) return;
 
-    // TODO: delete from SQLite via ExpenseDao.
-    await Future.delayed(const Duration(milliseconds: 500));
+    if (_existingExpenseId != null) {
+      await DatabaseService.instance.deleteExpense(_existingExpenseId!);
+    }
     if (!mounted) return;
 
     Navigator.popUntil(context, (route) => route.isFirst);
@@ -880,8 +929,8 @@ class _ExpenseEntryScreenState extends State<ExpenseEntryScreen>
           SizedBox(
             width: double.infinity,
             height: 48,
-            child: OutlinedButton.icon(
-              onPressed: _addItem,
+            child: OutlinedButton.icon( 
+              onPressed: _addItem, // add new item row
               icon: const Icon(Icons.add_circle_outline, size: 20),
               label: const Text('Add Item'),
               style: OutlinedButton.styleFrom(
@@ -933,7 +982,7 @@ class _ExpenseEntryScreenState extends State<ExpenseEntryScreen>
                 const Spacer(),
                 if (_items.length > 1)
                   InkWell(
-                    onTap: () => _removeItem(index),
+                    onTap: () => _removeItem(index),// delete item
                     borderRadius: BorderRadius.circular(20),
                     child: Container(
                       padding: const EdgeInsets.all(4),
@@ -1027,7 +1076,7 @@ class _ExpenseEntryScreenState extends State<ExpenseEntryScreen>
               Align(
                 alignment: Alignment.centerRight,
                 child: Text(
-                  'Subtotal: Rs. ${NumberFormat('#,##0.00').format(subtotal)}',
+                  'Subtotal: ${CurrencyService.instance.format(subtotal)}',
                   style: const TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
@@ -1046,7 +1095,7 @@ class _ExpenseEntryScreenState extends State<ExpenseEntryScreen>
   // 5 ─ PAYMENT METHOD
   // ═══════════════════════════════════════════════════════════════════════════
 
-  Widget _buildPaymentMethodField() {
+  Widget _buildPaymentMethodField() {// not really a "field" but more of a selection chip group
     const methods = <String, IconData>{
       'Cash': Icons.money,
       'Card': Icons.credit_card,
@@ -1054,7 +1103,7 @@ class _ExpenseEntryScreenState extends State<ExpenseEntryScreen>
       'Other': Icons.more_horiz,
     };
 
-    return _fieldWrapper(
+    return _fieldWrapper( 
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1195,7 +1244,7 @@ class _ExpenseEntryScreenState extends State<ExpenseEntryScreen>
             transitionBuilder: (child, anim) =>
                 FadeTransition(opacity: anim, child: child),
             child: Text(
-              'Rs. ${NumberFormat('#,##0.00').format(_totalAmount)}',
+              CurrencyService.instance.format(_totalAmount),
               key: ValueKey<double>(_totalAmount),
               style: const TextStyle(
                 fontSize: 28,

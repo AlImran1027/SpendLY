@@ -25,6 +25,10 @@ library;
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../services/currency_service.dart';
+import '../services/database_service.dart';
+import '../services/gemini_service.dart';
+import '../services/lm_studio_service.dart';
 import '../utils/constants.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -48,10 +52,11 @@ class _ProfileScreenState extends State<ProfileScreen>
   String _selectedDateFormat = 'DD/MM/YYYY';
   String _selectedLanguage = 'English';
 
-  // ─── Stats (placeholder values — replace with DB query) ────────────────────
-  final int _totalExpenses = 127;
-  final String _totalSpent = 'Rs. 45,320';
-  final int _activeBudgets = 6;
+  // ─── Stats (loaded from DB) ────────────────────────────────────────────────
+  int _totalExpenses = 0;
+  String _totalSpent = '—';
+  int _activeBudgets = 0;
+  double _totalSpentRaw = 0.0;
 
   // ─── Animation ─────────────────────────────────────────────────────────────
   late final AnimationController _staggerCtrl;
@@ -84,6 +89,22 @@ class _ProfileScreenState extends State<ProfileScreen>
 
   Future<void> _loadUserData() async {
     final prefs = await SharedPreferences.getInstance();
+    final db = DatabaseService.instance;
+
+    final results = await Future.wait([
+      db.getExpenseCount(),
+      db.getHighestExpense(),
+    ]);
+    final count = results[0] as int;
+    final highest = results[1] as double;
+
+    // Sum all monthly totals for the current year as total-spent proxy.
+    final now = DateTime.now();
+    final monthTotals = await Future.wait(
+      List.generate(now.month, (i) => db.getMonthlyTotal(now.year, i + 1)),
+    );
+    final totalSpentAmt = monthTotals.fold(0.0, (s, v) => s + v);
+
     if (!mounted) return;
     setState(() {
       _userName = prefs.getString(AppConstants.prefUserName) ?? 'User';
@@ -91,18 +112,21 @@ class _ProfileScreenState extends State<ProfileScreen>
           prefs.getString(AppConstants.prefUserEmail) ?? 'user@example.com';
       _notificationsEnabled = prefs.getBool(_prefNotifications) ?? true;
       _darkModeEnabled = prefs.getBool(_prefDarkMode) ?? false;
-      _selectedCurrency =
-          prefs.getString(_prefCurrency) ?? 'Indian Rupee (Rs.)';
+      _selectedCurrency = CurrencyService.instance.label;
       _selectedDateFormat =
           prefs.getString(_prefDateFormat) ?? 'DD/MM/YYYY';
       _selectedLanguage = prefs.getString(_prefLanguage) ?? 'English';
+      _totalExpenses = count;
+      _totalSpentRaw = totalSpentAmt;
+      _totalSpent = CurrencyService.instance.format(totalSpentAmt);
+      _activeBudgets = 0; // budgets table pending — show 0
     });
+    debugPrint('ProfileScreen: highest expense = $highest'); // used once budgets table is live
   }
 
   // ─── Preference keys ──────────────────────────────────────────────────────
   static const _prefNotifications = 'pref_notifications';
   static const _prefDarkMode = 'pref_dark_mode';
-  static const _prefCurrency = 'pref_currency';
   static const _prefDateFormat = 'pref_date_format';
   static const _prefLanguage = 'pref_language';
 
@@ -455,14 +479,15 @@ class _ProfileScreenState extends State<ProfileScreen>
           showDivider: true,
         ),
         _SettingsRow(
-          icon: Icons.currency_rupee,
+          icon: Icons.currency_exchange,
           iconColor: AppConstants.primaryGreen,
           label: 'Currency',
           trailing: Text(
-            _selectedCurrency,
+            CurrencyService.instance.symbol,
             style: const TextStyle(
-              fontSize: 12,
-              color: AppConstants.textLightGray,
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: AppConstants.primaryGreen,
             ),
           ),
           onTap: _handleCurrencySelect,
@@ -505,6 +530,47 @@ class _ProfileScreenState extends State<ProfileScreen>
             ),
           ),
           onTap: _handleLanguageSelect,
+          showDivider: true,
+        ),
+        _SettingsRow(
+          icon: Icons.auto_awesome_outlined,
+          iconColor: AppConstants.infoBlue,
+          label: 'Gemini AI API Key',
+          subtitle: 'Cloud receipt scanning',
+          trailing: Text(
+            GeminiService.instance.hasApiKey
+                ? GeminiService.instance.apiKeyMasked
+                : 'Not set',
+            style: TextStyle(
+              fontSize: 12,
+              color: GeminiService.instance.hasApiKey
+                  ? AppConstants.primaryGreen
+                  : AppConstants.errorRed,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          onTap: _handleGeminiApiKey,
+          showDivider: true,
+        ),
+        _SettingsRow(
+          icon: Icons.computer_outlined,
+          iconColor: const Color(0xFF7B1FA2),
+          label: 'LM Studio (Local AI)',
+          subtitle: 'Private on-device receipt scanning',
+          trailing: Text(
+            LMStudioService.instance.isConfigured
+                ? LMStudioService.instance.serverUrl
+                : 'Not set',
+            style: TextStyle(
+              fontSize: 12,
+              color: LMStudioService.instance.isConfigured
+                  ? AppConstants.primaryGreen
+                  : AppConstants.textLightGray,
+              fontWeight: FontWeight.w500,
+            ),
+            overflow: TextOverflow.ellipsis,
+          ),
+          onTap: _handleLMStudioSetup,
           showDivider: false,
         ),
       ],
@@ -653,14 +719,74 @@ class _ProfileScreenState extends State<ProfileScreen>
     );
   }
 
-  void _handleEditProfile() {
-    // TODO: Navigate to Edit Profile screen
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Edit profile coming soon!'),
-        behavior: SnackBarBehavior.floating,
+  Future<void> _handleEditProfile() async {
+    final nameCtrl = TextEditingController(text: _userName);
+    final emailCtrl = TextEditingController(text: _userEmail);
+    final formKey = GlobalKey<FormState>();
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Edit Profile'),
+        content: Form(
+          key: formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextFormField(
+                controller: nameCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Full Name',
+                  prefixIcon: Icon(Icons.person_outline),
+                ),
+                validator: (v) =>
+                    (v == null || v.trim().isEmpty) ? 'Name is required' : null,
+                textCapitalization: TextCapitalization.words,
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: emailCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Email',
+                  prefixIcon: Icon(Icons.email_outlined),
+                ),
+                keyboardType: TextInputType.emailAddress,
+                validator: (v) {
+                  if (v == null || v.trim().isEmpty) return 'Email is required';
+                  if (!v.contains('@')) return 'Enter a valid email';
+                  return null;
+                },
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: AppConstants.primaryGreen,
+            ),
+            onPressed: () {
+              if (formKey.currentState!.validate()) Navigator.pop(ctx, true);
+            },
+            child: const Text('Save'),
+          ),
+        ],
       ),
     );
+
+    if (confirmed != true) return;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(AppConstants.prefUserName, nameCtrl.text.trim());
+    await prefs.setString(AppConstants.prefUserEmail, emailCtrl.text.trim());
+    if (!mounted) return;
+    setState(() {
+      _userName = nameCtrl.text.trim();
+      _userEmail = emailCtrl.text.trim();
+    });
   }
 
   // ── Account ────────────────────────────────────────────────────────────────
@@ -701,12 +827,17 @@ class _ProfileScreenState extends State<ProfileScreen>
   void _handleCurrencySelect() {
     _showSelectorModal(
       title: 'Select Currency',
-      items: _currencies,
+      items: CurrencyService.currencyMap.keys.toList(),
       selectedValue: _selectedCurrency,
       onSelected: (value) async {
-        setState(() => _selectedCurrency = value);
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString(_prefCurrency, value);
+        await CurrencyService.instance.setCurrency(value);
+        if (!mounted) return;
+        setState(() {
+          _selectedCurrency = CurrencyService.instance.label;
+          _totalSpent = CurrencyService.instance.format(
+            _totalSpentRaw,
+          );
+        });
       },
     );
   }
@@ -735,6 +866,337 @@ class _ProfileScreenState extends State<ProfileScreen>
         await prefs.setString(_prefLanguage, value);
       },
     );
+  }
+
+  Future<void> _handleGeminiApiKey() async {
+    final ctrl = TextEditingController();
+    bool obscure = true;
+
+    final saved = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppConstants.borderRadiusMedium),
+          ),
+          title: const Row(
+            children: [
+              Icon(Icons.auto_awesome_outlined, color: AppConstants.infoBlue, size: 24),
+              SizedBox(width: 8),
+              Text(
+                'Gemini AI API Key',
+                style: TextStyle(fontWeight: FontWeight.bold, color: AppConstants.textDark),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Enter your Google Gemini API key to enable AI-powered receipt scanning.',
+                style: TextStyle(fontSize: 13, color: AppConstants.textMediumGray, height: 1.4),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: ctrl,
+                obscureText: obscure,
+                autofocus: true,
+                decoration: InputDecoration(
+                  hintText: 'AIza...',
+                  hintStyle: const TextStyle(color: AppConstants.textLightGray),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(AppConstants.borderRadiusSmall),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(AppConstants.borderRadiusSmall),
+                    borderSide: const BorderSide(color: AppConstants.primaryGreen, width: 2),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                      color: AppConstants.textLightGray,
+                    ),
+                    onPressed: () => setDialogState(() => obscure = !obscure),
+                  ),
+                ),
+              ),
+              if (GeminiService.instance.hasApiKey) ...[
+                const SizedBox(height: 8),
+                TextButton.icon(
+                  onPressed: () {
+                    ctrl.clear();
+                    setDialogState(() {});
+                  },
+                  icon: const Icon(Icons.delete_outline, size: 16, color: AppConstants.errorRed),
+                  label: const Text('Clear key', style: TextStyle(color: AppConstants.errorRed, fontSize: 13)),
+                  style: TextButton.styleFrom(padding: EdgeInsets.zero),
+                ),
+              ],
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancel', style: TextStyle(color: AppConstants.textMediumGray)),
+            ),
+            FilledButton(
+              style: FilledButton.styleFrom(backgroundColor: AppConstants.primaryGreen),
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Save'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (saved != true) return;
+    await GeminiService.instance.setApiKey(ctrl.text.trim());
+    if (!mounted) return;
+    setState(() {});
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          GeminiService.instance.hasApiKey
+              ? 'Gemini API key saved!'
+              : 'Gemini API key cleared.',
+        ),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  Future<void> _handleLMStudioSetup() async {
+    final urlCtrl = TextEditingController(
+      text: LMStudioService.instance.isConfigured
+          ? LMStudioService.instance.serverUrl
+          : LMStudioService.defaultServerUrl,
+    );
+    final modelCtrl = TextEditingController(
+      text: LMStudioService.instance.modelName,
+    );
+    String? urlError;
+    String testStatus = '';
+    List<String> availableModels = [];
+    bool isTesting = false;
+
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppConstants.borderRadiusMedium),
+          ),
+          title: const Row(
+            children: [
+              Icon(Icons.computer_outlined, color: Color(0xFF7B1FA2), size: 24),
+              SizedBox(width: 8),
+              Text(
+                'LM Studio Setup',
+                style: TextStyle(fontWeight: FontWeight.bold, color: AppConstants.textDark),
+              ),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Connect to a locally running LM Studio server for private, '
+                  'on-device receipt scanning. Load a vision-capable model in '
+                  'LM Studio and enable its server before connecting.',
+                  style: TextStyle(fontSize: 13, color: AppConstants.textMediumGray, height: 1.4),
+                ),
+                const SizedBox(height: 16),
+
+                // Server URL field
+                const Text('SERVER URL',
+                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700,
+                        color: AppConstants.textLightGray, letterSpacing: 0.8)),
+                const SizedBox(height: 6),
+                TextField(
+                  controller: urlCtrl,
+                  keyboardType: TextInputType.url,
+                  onChanged: (_) {
+                    if (urlError != null || testStatus.isNotEmpty) {
+                      setDialogState(() { urlError = null; testStatus = ''; });
+                    }
+                  },
+                  decoration: InputDecoration(
+                    hintText: 'http://192.168.1.x:1234',
+                    hintStyle: const TextStyle(color: AppConstants.textLightGray),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(AppConstants.borderRadiusSmall),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(AppConstants.borderRadiusSmall),
+                      borderSide: const BorderSide(color: Color(0xFF7B1FA2), width: 2),
+                    ),
+                    errorText: urlError,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                    suffixIcon: isTesting
+                        ? const Padding(
+                            padding: EdgeInsets.all(12),
+                            child: SizedBox(width: 20, height: 20,
+                                child: CircularProgressIndicator(strokeWidth: 2)),
+                          )
+                        : IconButton(
+                            icon: const Icon(Icons.wifi_tethering_outlined),
+                            tooltip: 'Test connection',
+                            color: const Color(0xFF7B1FA2),
+                            onPressed: () async {
+                              final url = urlCtrl.text.trim();
+                              if (url.isEmpty) {
+                                setDialogState(() => urlError = 'Enter a URL first.');
+                                return;
+                              }
+                              setDialogState(() { isTesting = true; testStatus = ''; availableModels = []; });
+                              await LMStudioService.instance.setServerUrl(url);
+                              final models = await LMStudioService.instance.fetchAvailableModels();
+                              setDialogState(() {
+                                isTesting = false;
+                                if (models.isEmpty) {
+                                  testStatus = '✗ Could not reach server or no models loaded.';
+                                } else {
+                                  availableModels = models;
+                                  testStatus = '✓ Connected — ${models.length} model(s) found.';
+                                }
+                              });
+                            },
+                          ),
+                  ),
+                ),
+
+                // Test result / model list
+                if (testStatus.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    testStatus,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: testStatus.startsWith('✓')
+                          ? AppConstants.primaryGreen
+                          : AppConstants.errorRed,
+                    ),
+                  ),
+                ],
+                if (availableModels.isNotEmpty) ...[
+                  const SizedBox(height: 10),
+                  const Text('TAP A MODEL TO SELECT',
+                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700,
+                          color: AppConstants.textLightGray, letterSpacing: 0.8)),
+                  const SizedBox(height: 6),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: availableModels.map((m) {
+                      final selected = modelCtrl.text.trim() == m;
+                      return GestureDetector(
+                        onTap: () => setDialogState(() => modelCtrl.text = m),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: selected
+                                ? const Color(0xFF7B1FA2).withValues(alpha: 0.1)
+                                : const Color(0xFFF8FAF8),
+                            border: Border.all(
+                              color: selected ? const Color(0xFF7B1FA2) : Colors.grey.withValues(alpha: 0.3),
+                              width: selected ? 1.5 : 1,
+                            ),
+                            borderRadius: BorderRadius.circular(AppConstants.borderRadiusSmall),
+                          ),
+                          child: Text(m,
+                              style: TextStyle(
+                                  fontSize: 12,
+                                  color: selected ? const Color(0xFF7B1FA2) : AppConstants.textMediumGray,
+                                  fontWeight: selected ? FontWeight.w600 : FontWeight.normal)),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ],
+
+                const SizedBox(height: 14),
+
+                // Model name field
+                const Text('MODEL NAME',
+                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700,
+                        color: AppConstants.textLightGray, letterSpacing: 0.8)),
+                const SizedBox(height: 6),
+                TextField(
+                  controller: modelCtrl,
+                  decoration: InputDecoration(
+                    hintText: 'llava-v1.5-7b (leave blank for loaded model)',
+                    hintStyle: const TextStyle(color: AppConstants.textLightGray, fontSize: 12),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(AppConstants.borderRadiusSmall),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(AppConstants.borderRadiusSmall),
+                      borderSide: const BorderSide(color: Color(0xFF7B1FA2), width: 2),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                  ),
+                ),
+
+                // Clear option
+                if (LMStudioService.instance.isConfigured) ...[
+                  const SizedBox(height: 8),
+                  TextButton.icon(
+                    onPressed: () {
+                      urlCtrl.clear();
+                      modelCtrl.clear();
+                      setDialogState(() { testStatus = ''; availableModels = []; });
+                    },
+                    icon: const Icon(Icons.delete_outline, size: 16, color: AppConstants.errorRed),
+                    label: const Text('Clear configuration',
+                        style: TextStyle(color: AppConstants.errorRed, fontSize: 13)),
+                    style: TextButton.styleFrom(padding: EdgeInsets.zero),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel', style: TextStyle(color: AppConstants.textMediumGray)),
+            ),
+            FilledButton(
+              style: FilledButton.styleFrom(backgroundColor: const Color(0xFF7B1FA2)),
+              onPressed: () async {
+                final url = urlCtrl.text.trim();
+                if (url.isEmpty) {
+                  setDialogState(() => urlError = 'Please enter a server URL.');
+                  return;
+                }
+                await LMStudioService.instance.setServerUrl(url);
+                await LMStudioService.instance.setModelName(modelCtrl.text);
+                if (ctx.mounted) Navigator.pop(ctx);
+              },
+              child: const Text('Save'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    urlCtrl.dispose();
+    modelCtrl.dispose();
+    if (!mounted) return;
+    setState(() {});
+
+    if (LMStudioService.instance.isConfigured) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('LM Studio configured!'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 
   // ── Help ───────────────────────────────────────────────────────────────────
@@ -1099,19 +1561,24 @@ class _ProfileScreenState extends State<ProfileScreen>
   }) {
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(
           top: Radius.circular(AppConstants.borderRadiusLarge),
         ),
       ),
       builder: (ctx) {
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.only(top: 8),
+        final bottomInset = MediaQuery.viewInsetsOf(ctx).bottom;
+        final maxH = MediaQuery.sizeOf(ctx).height * 0.55;
+        return Padding(
+          padding: EdgeInsets.only(bottom: bottomInset),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxHeight: maxH),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 // Drag handle
+                const SizedBox(height: 8),
                 Container(
                   width: 40,
                   height: 4,
@@ -1132,13 +1599,10 @@ class _ProfileScreenState extends State<ProfileScreen>
                   ),
                 ),
                 const SizedBox(height: 8),
-                const Divider(),
+                const Divider(height: 1),
 
-                // Options
-                ConstrainedBox(
-                  constraints: BoxConstraints(
-                    maxHeight: MediaQuery.of(ctx).size.height * 0.45,
-                  ),
+                // Options — takes remaining space and scrolls
+                Flexible(
                   child: ListView.builder(
                     shrinkWrap: true,
                     itemCount: items.length,
@@ -1183,7 +1647,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                   ),
                 ),
 
-                const SizedBox(height: 8),
+                SafeArea(child: const SizedBox(height: 8)),
               ],
             ),
           ),
@@ -1196,21 +1660,7 @@ class _ProfileScreenState extends State<ProfileScreen>
   //  DATA LISTS
   // ═════════════════════════════════════════════════════════════════════════
 
-  static const _currencies = [
-    'Indian Rupee (Rs.)',
-    'US Dollar (\$)',
-    'Euro (€)',
-    'British Pound (£)',
-    'Japanese Yen (¥)',
-    'Canadian Dollar (C\$)',
-    'Australian Dollar (A\$)',
-    'Swiss Franc (CHF)',
-    'Chinese Yuan (¥)',
-    'Saudi Riyal (SAR)',
-    'UAE Dirham (AED)',
-    'Pakistani Rupee (PKR)',
-    'Bangladeshi Taka (BDT)',
-  ];
+  // Currency list is now driven by CurrencyService.currencyMap
 
   static const _dateFormats = [
     'DD/MM/YYYY',

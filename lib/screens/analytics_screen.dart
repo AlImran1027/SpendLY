@@ -18,6 +18,8 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../services/currency_service.dart';
+import '../services/database_service.dart';
 import '../utils/constants.dart';
 
 // ─── Data models ─────────────────────────────────────────────────────────────
@@ -55,84 +57,153 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
   _Period _period = _Period.month;
   bool _isLoading = true;
 
-  late List<_DaySpend> _trend;
-  late List<_CategorySpend> _categories;
+  List<_DaySpend> _trend = const [];
+  List<_CategorySpend> _categories = const [];
 
   // ─── Lifecycle ─────────────────────────────────────────────────────────────
+
+  void _onCurrencyChanged() {
+    if (mounted) setState(() {});
+  }
 
   @override
   void initState() {
     super.initState();
+    CurrencyService.instance.addListener(_onCurrencyChanged);
     _loadData();
+  }
+
+  @override
+  void dispose() {
+    CurrencyService.instance.removeListener(_onCurrencyChanged);
+    super.dispose();
   }
 
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
-    await Future.delayed(const Duration(milliseconds: 350));
+
+    final now = DateTime.now();
+    final (trend, categories) = await _fetchForPeriod(_period, now);
+
     if (!mounted) return;
     setState(() {
-      _trend = _sampleTrend(_period);
-      _categories = _sampleCategories();
+      _trend = trend;
+      _categories = categories;
       _isLoading = false;
     });
   }
 
-  void _setPeriod(_Period p) {
+  void _setPeriod(_Period p) async {
     if (_period == p) return;
     setState(() {
       _period = p;
-      _trend = _sampleTrend(p);
+      _isLoading = true;
+    });
+    final now = DateTime.now();
+    final (trend, categories) = await _fetchForPeriod(p, now);
+    if (!mounted) return;
+    setState(() {
+      _trend = trend;
+      _categories = categories;
+      _isLoading = false;
     });
   }
 
-  // ─── Sample data ───────────────────────────────────────────────────────────
+  // ─── DB fetch helpers ──────────────────────────────────────────────────────
 
-  List<_DaySpend> _sampleTrend(_Period p) {
+  static const _catColors = <String, Color>{
+    'Groceries':       AppConstants.primaryGreen,
+    'Food/Restaurant': Color(0xFFE65100),
+    'Clothes':         Color(0xFF7B1FA2),
+    'Medicine':        AppConstants.errorRed,
+    'Hardware':        Color(0xFF455A64),
+    'Cosmetics':       Color(0xFFD81B60),
+    'Entertainment':   AppConstants.infoBlue,
+    'Others':          AppConstants.textMediumGray,
+  };
+
+  Future<(List<_DaySpend>, List<_CategorySpend>)> _fetchForPeriod(
+      _Period p, DateTime now) async {
+    final db = DatabaseService.instance;
+
+    // ── Trend bars ──────────────────────────────────────────────────────────
+    List<_DaySpend> trend;
     switch (p) {
       case _Period.week:
-        return const [
-          _DaySpend('Mon', 45),
-          _DaySpend('Tue', 120),
-          _DaySpend('Wed', 30),
-          _DaySpend('Thu', 89),
-          _DaySpend('Fri', 210),
-          _DaySpend('Sat', 175),
-          _DaySpend('Sun', 55),
-        ];
-      case _Period.month:
-        return const [
-          _DaySpend('W1', 230),
-          _DaySpend('W2', 185),
-          _DaySpend('W3', 310),
-          _DaySpend('W4', 275),
-        ];
-      case _Period.year:
-        return const [
-          _DaySpend('Jan', 520),
-          _DaySpend('Feb', 430),
-          _DaySpend('Mar', 610),
-          _DaySpend('Apr', 390),
-          _DaySpend('May', 720),
-          _DaySpend('Jun', 480),
-          _DaySpend('Jul', 560),
-          _DaySpend('Aug', 645),
-          _DaySpend('Sep', 410),
-          _DaySpend('Oct', 530),
-          _DaySpend('Nov', 695),
-          _DaySpend('Dec', 820),
-        ];
-    }
-  }
+        // Last 7 days, labelled Mon–Sun
+        final from = DateTime(now.year, now.month, now.day)
+            .subtract(const Duration(days: 6));
+        final dailyMap = await db.getDailyTotals(from, now);
+        trend = List.generate(7, (i) {
+          final d = from.add(Duration(days: i));
+          final key =
+              '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+          return _DaySpend(DateFormat('E').format(d), dailyMap[key] ?? 0);
+        });
 
-  List<_CategorySpend> _sampleCategories() => const [
-        _CategorySpend('Groceries', 104.00, AppConstants.primaryGreen),
-        _CategorySpend('Food/Restaurant', 22.75, Color(0xFFE65100)),
-        _CategorySpend('Clothes', 89.00, Color(0xFF7B1FA2)),
-        _CategorySpend('Medicine', 36.48, AppConstants.errorRed),
-        _CategorySpend('Hardware', 176.75, Color(0xFF455A64)),
-        _CategorySpend('Cosmetics', 55.00, Color(0xFFD81B60)),
-        _CategorySpend('Entertainment', 43.99, AppConstants.infoBlue),
-      ];
+      case _Period.month:
+        // Current month grouped into 4 ISO weeks
+        final monthStart = DateTime(now.year, now.month, 1);
+        final monthEnd = DateTime(now.year, now.month + 1, 1)
+            .subtract(const Duration(days: 1));
+        final dailyMap = await db.getDailyTotals(monthStart, monthEnd);
+        // Bucket into W1–W4(W5)
+        final weeks = <String, double>{};
+        for (final entry in dailyMap.entries) {
+          final d = DateTime.parse(entry.key);
+          final week = ((d.day - 1) ~/ 7) + 1;
+          final key = 'W$week';
+          weeks[key] = (weeks[key] ?? 0) + entry.value;
+        }
+        trend = weeks.entries
+            .map((e) => _DaySpend(e.key, e.value))
+            .toList()
+          ..sort((a, b) => a.label.compareTo(b.label));
+        if (trend.isEmpty) trend = const [_DaySpend('W1', 0)];
+
+      case _Period.year:
+        // 12 months of the current year
+        final futures = List.generate(12,
+            (i) => db.getMonthlyTotal(now.year, i + 1));
+        final totals = await Future.wait(futures);
+        trend = List.generate(12, (i) {
+          final label = DateFormat('MMM')
+              .format(DateTime(now.year, i + 1));
+          return _DaySpend(label, totals[i]);
+        });
+    }
+
+    // ── Category breakdown (current period) ─────────────────────────────────
+    Map<String, double> catTotals;
+    switch (p) {
+      case _Period.week:
+        // Category breakdown uses current month as the best available proxy.
+        catTotals = await db.getCategoryTotals(now.year, now.month);
+      case _Period.month:
+        catTotals = await db.getCategoryTotals(now.year, now.month);
+      case _Period.year:
+        final allMonths = await Future.wait(List.generate(
+            12, (i) => db.getCategoryTotals(now.year, i + 1)));
+        catTotals = {};
+        for (final m in allMonths) {
+          for (final e in m.entries) {
+            catTotals[e.key] = (catTotals[e.key] ?? 0) + e.value;
+          }
+        }
+    }
+
+    final categories = catTotals.entries
+        .where((e) => e.value > 0)
+        .map((e) => _CategorySpend(
+              e.key,
+              e.value,
+              _catColors[e.key] ?? AppConstants.textMediumGray,
+            ))
+        .toList()
+      ..sort((a, b) => b.amount.compareTo(a.amount));
+
+    return (trend, categories);
+  }
 
   // ─── Computed helpers ──────────────────────────────────────────────────────
 
@@ -141,8 +212,10 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
   double get _avgPerBar =>
       _trend.isEmpty ? 0 : _periodTotal / _trend.length;
 
-  _DaySpend get _peakBar =>
-      _trend.reduce((a, b) => a.amount > b.amount ? a : b);
+  _DaySpend? get _peakBar {
+    if (_trend.isEmpty) return null;
+    return _trend.reduce((a, b) => a.amount > b.amount ? a : b);
+  }
 
   double get _categoryTotal =>
       _categories.fold(0.0, (s, c) => s + c.amount);
@@ -280,7 +353,17 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
   // ─── Summary card ──────────────────────────────────────────────────────────
 
   Widget _buildSummaryCard() {
-    final pctChange = 8.4; // TODO: compute from real data
+    // Compare second half vs first half of trend bars as a period-over-period proxy.
+    final half = _trend.length ~/ 2;
+    final firstHalf = half > 0
+        ? _trend.sublist(0, half).fold(0.0, (s, d) => s + d.amount)
+        : 0.0;
+    final secondHalf = half > 0
+        ? _trend.sublist(half).fold(0.0, (s, d) => s + d.amount)
+        : 0.0;
+    final pctChange = firstHalf > 0
+        ? ((secondHalf - firstHalf) / firstHalf * 100)
+        : 0.0;
     return Container(
       margin: const EdgeInsets.fromLTRB(
         AppConstants.paddingLarge,
@@ -316,7 +399,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '\$${_periodTotal.toStringAsFixed(2)}',
+                  CurrencyService.instance.format(_periodTotal),
                   style: const TextStyle(
                     fontSize: 30,
                     fontWeight: FontWeight.w800,
@@ -399,7 +482,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
               ),
               const SizedBox(width: 4),
               Text(
-                '\$${_avgPerBar.toStringAsFixed(0)}',
+                CurrencyService.instance.format(_avgPerBar, decimals: 0),
                 style: const TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
@@ -507,6 +590,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
   // ─── Top categories list with progress bars ─────────────────────────────────
 
   Widget _buildTopCategoriesList() {
+    if (_categories.isEmpty) return const SizedBox.shrink();
     final sorted = [..._categories]
       ..sort((a, b) => b.amount.compareTo(a.amount));
     final maxAmount = sorted.first.amount;
@@ -559,7 +643,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
                         ),
                       ),
                       Text(
-                        '\$${c.amount.toStringAsFixed(2)}',
+                        CurrencyService.instance.format(c.amount),
                         style: const TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w700,
@@ -596,7 +680,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
   // ─── Key insights row ───────────────────────────────────────────────────────
 
   Widget _buildInsightsRow() {
+    if (_categories.isEmpty) return const SizedBox.shrink();
     final topCat = _categories.reduce((a, b) => a.amount > b.amount ? a : b);
+    final peak = _peakBar;
     final txCount = _categories.length; // placeholder
     return Padding(
       padding: const EdgeInsets.fromLTRB(
@@ -624,8 +710,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
                   icon: Icons.arrow_upward_rounded,
                   iconColor: const Color(0xFFD81B60),
                   label: 'Peak Spend',
-                  value: '\$${_peakBar.amount.toStringAsFixed(0)}',
-                  sub: _peakBar.label,
+                  value: CurrencyService.instance.format(peak?.amount ?? 0, decimals: 0),
+                  sub: peak?.label ?? '—',
                 ),
               ),
               const SizedBox(width: 12),
@@ -635,7 +721,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
                   iconColor: AppConstants.infoBlue,
                   label: 'Top Category',
                   value: topCat.name,
-                  sub: '\$${topCat.amount.toStringAsFixed(2)}',
+                  sub: CurrencyService.instance.format(topCat.amount),
                 ),
               ),
               const SizedBox(width: 12),

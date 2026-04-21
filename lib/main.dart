@@ -20,10 +20,20 @@ import 'screens/budget_screen.dart';
 import 'screens/forgot_password_screen.dart';
 import 'screens/change_password_screen.dart';
 import 'screens/reset_password_screen.dart';
+import 'services/currency_service.dart';
+import 'services/gemini_service.dart';
+import 'services/lm_studio_service.dart';
 import 'utils/constants.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Load persisted settings before the first frame.
+  await Future.wait([
+    CurrencyService.instance.load(),
+    GeminiService.instance.load(),
+    LMStudioService.instance.load(),
+  ]);
 
   // Lock orientation to portrait for consistent receipt-capture UX.
   SystemChrome.setPreferredOrientations([

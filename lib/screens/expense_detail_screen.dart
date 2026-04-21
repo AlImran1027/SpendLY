@@ -21,9 +21,11 @@ library;
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
+import 'package:intl/intl.dart' show DateFormat;
 
 import '../models/extracted_receipt_data.dart';
+import '../services/currency_service.dart';
+import '../services/database_service.dart';
 import '../utils/constants.dart';
 import 'expense_entry_screen.dart';
 
@@ -82,6 +84,7 @@ class _ExpenseDetailScreenState extends State<ExpenseDetailScreen>
   DateTime? _createdAt;
   DateTime? _modifiedAt;
   double? _aiConfidence;
+  int? _expenseId;
   bool _isLoading = true;
   bool _argsRead = false;
 
@@ -119,11 +122,42 @@ class _ExpenseDetailScreenState extends State<ExpenseDetailScreen>
 
     final args = ModalRoute.of(context)?.settings.arguments;
     if (args is ExpenseDetailArgs) {
-      _data = args.receiptData;
+      _expenseId = args.expenseId;
       _notes = args.notes;
       _createdAt = args.createdAt;
       _modifiedAt = args.modifiedAt;
       _aiConfidence = args.aiConfidence;
+
+      // If a DB id was provided try to load from SQLite; fall back to the
+      // passed-in receiptData (or sample data) if not found.
+      if (_expenseId != null) {
+        DatabaseService.instance.getExpenseById(_expenseId!).then((expense) {
+          if (!mounted) return;
+          if (expense != null) {
+            setState(() {
+              _data = expense.toExtractedReceiptData();
+              _notes = expense.notes.isNotEmpty ? expense.notes : null;
+              _createdAt = expense.createdAt;
+              _modifiedAt = expense.modifiedAt;
+              _aiConfidence = expense.aiConfidence;
+              _isLoading = false;
+            });
+          } else {
+            // Fallback to args data
+            setState(() {
+              _data = args.receiptData ?? ExtractedReceiptData.sample(imagePath: '');
+              _createdAt ??= _data!.date ?? DateTime.now();
+              _modifiedAt ??= _createdAt;
+              _isLoading = false;
+            });
+          }
+          _imageCtrl.forward();
+          _staggerCtrl.forward();
+        });
+        return; // early return — loading handled in .then()
+      }
+
+      _data = args.receiptData;
     }
 
     // If no data was passed, use sample data for development.
@@ -132,7 +166,6 @@ class _ExpenseDetailScreenState extends State<ExpenseDetailScreen>
     _createdAt ??= _data!.date ?? DateTime.now();
     _modifiedAt ??= _createdAt;
 
-    // Simulate a brief loading state.
     Future.delayed(const Duration(milliseconds: 400), () {
       if (!mounted) return;
       setState(() => _isLoading = false);
@@ -150,11 +183,8 @@ class _ExpenseDetailScreenState extends State<ExpenseDetailScreen>
 
   // ─── Helpers ────────────────────────────────────────────────────────────────
 
-  /// Formats currency with Rs. symbol and two decimals.
-  String _formatCurrency(double amount) {
-    final formatter = NumberFormat('#,##0.00', 'en_US');
-    return 'Rs. ${formatter.format(amount)}';
-  }
+  String _formatCurrency(double amount) =>
+      CurrencyService.instance.format(amount);
 
   /// Formats a DateTime to a full readable string.
   String _formatFullDate(DateTime? dt) {
@@ -264,8 +294,22 @@ class _ExpenseDetailScreenState extends State<ExpenseDetailScreen>
       arguments: ExpenseEntryArgs(
         extractedData: _data,
         isEditMode: true,
+        existingExpenseId: _expenseId,
       ),
-    );
+    ).then((_) {
+      // Reload from DB after returning from edit
+      if (_expenseId != null && mounted) {
+        DatabaseService.instance.getExpenseById(_expenseId!).then((expense) {
+          if (expense != null && mounted) {
+            setState(() {
+              _data = expense.toExtractedReceiptData();
+              _notes = expense.notes.isNotEmpty ? expense.notes : null;
+              _modifiedAt = expense.modifiedAt;
+            });
+          }
+        });
+      }
+    });
   }
 
   void _showDeleteConfirmation() {
@@ -360,12 +404,13 @@ class _ExpenseDetailScreenState extends State<ExpenseDetailScreen>
   }
 
   void _performDelete() {
-    // TODO: Delete from SQLite using expense ID.
-    // For now, show a snackbar and pop back.
+    if (_expenseId != null) {
+      DatabaseService.instance.deleteExpense(_expenseId!);
+    }
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Expense deleted'),
-        backgroundColor: AppConstants.errorRed,
+        backgroundColor: AppConstants.errorRed, // Red background to indicate deletion
         behavior: SnackBarBehavior.floating,
       ),
     );
@@ -407,9 +452,9 @@ class _ExpenseDetailScreenState extends State<ExpenseDetailScreen>
         backgroundColor: AppConstants.backgroundColor,
         elevation: 0,
         centerTitle: true,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
-          onPressed: () => Navigator.pop(context),
+        leading: IconButton( // Back button to return to the previous screen
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20), // Use a smaller back arrow icon
+          onPressed: () => Navigator.pop(context), // Navigate back when pressed
         ),
         title: const Text(
           'Expense Details',
@@ -1224,7 +1269,7 @@ class _ExpenseDetailScreenState extends State<ExpenseDetailScreen>
           // Edit button
           Expanded(
             child: OutlinedButton.icon(
-              onPressed: _navigateToEdit,
+              onPressed: _navigateToEdit, // Navigate to the edit screen
               icon: const Icon(Icons.edit_outlined, size: 18),
               label: const Text(
                 'Edit',
@@ -1247,7 +1292,7 @@ class _ExpenseDetailScreenState extends State<ExpenseDetailScreen>
           // Delete button
           Expanded(
             child: ElevatedButton.icon(
-              onPressed: _showDeleteConfirmation,
+              onPressed: _showDeleteConfirmation, // Show delete confirmation dialog
               icon: const Icon(Icons.delete_outline, size: 18),
               label: const Text(
                 'Delete',

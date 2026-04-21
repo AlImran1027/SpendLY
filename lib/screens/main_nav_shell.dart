@@ -31,15 +31,15 @@ class _MainNavShellState extends State<MainNavShell> {
   /// The four tab screens. Using IndexedStack keeps each screen alive when
   /// the user switches tabs, preserving scroll position and state.
   /// Budget is accessible via the edit button on the Home spending card.
-  final List<Widget> _screens = const [
-    HomeScreen(),
-    ExpensesScreen(),
-    AnalyticsScreen(),
-    ProfileScreen(),
+  late final List<Widget> _screens = [
+    HomeScreen(onSeeAllExpenses: () => _onTabTapped(1)),
+    const ExpensesScreen(),
+    const AnalyticsScreen(),
+    const ProfileScreen(),
   ];
 
   void _onTabTapped(int index) {
-    setState(() => _currentIndex = index);
+    setState(() => _currentIndex = index); // Update the current index to switch tabs
   }
 
   /// Opens the receipt capture flow (camera / gallery picker).
@@ -197,8 +197,8 @@ class _MainNavShellState extends State<MainNavShell> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: IndexedStack(
-        index: _currentIndex,
-        children: _screens,
+        index: _currentIndex, // Show the currently selected tab
+        children: _screens, 
       ),
 
       // ── Floating Action Button — receipt capture ──────────────────────────

@@ -15,16 +15,24 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:intl/intl.dart';
+import 'package:intl/intl.dart' show DateFormat;
 
+import '../models/expense.dart';
+import '../services/currency_service.dart';
+import '../services/database_service.dart';
 import '../utils/constants.dart';
 import '../widgets/spending_summary_card.dart';
 import '../widgets/quick_stat_card.dart';
 import '../widgets/expense_list_tile.dart';
 import '../widgets/section_header.dart';
+import 'expense_detail_screen.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  const HomeScreen({super.key, this.onSeeAllExpenses});
+
+  /// Callback invoked when the user taps "See all" on the recent expenses
+  /// section. Provided by [MainNavShell] to switch to the Expenses tab.
+  final VoidCallback? onSeeAllExpenses;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -35,69 +43,67 @@ class _HomeScreenState extends State<HomeScreen> {
   String _userName = 'User';
   bool _isLoading = true;
 
-  /// Sample expense data — will be replaced with SQLite queries later.
-  /// Each map simulates an expense record.
-  List<Map<String, String>> _recentExpenses = [];
+  List<Expense> _recentExpenses = [];
+  double _monthlyTotal = 0;
+  double _totalBudget = 0;
+  int _totalExpenseCount = 0;
+  int _categoryCount = 0;
+  double _avgPerDay = 0;
+  double _highestAmount = 0;
 
   // ─── Lifecycle ──────────────────────────────────────────────────────────────
+
+  void _onCurrencyChanged() {
+    if (mounted) setState(() {});
+  }
 
   @override
   void initState() {
     super.initState();
+    CurrencyService.instance.addListener(_onCurrencyChanged);
     _loadDashboardData();
   }
 
-  /// Loads user name and expense data.
+  @override
+  void dispose() {
+    CurrencyService.instance.removeListener(_onCurrencyChanged);
+    super.dispose();
+  }
+
+  /// Loads user name and expense data from SharedPreferences + SQLite.
   Future<void> _loadDashboardData() async {
     setState(() => _isLoading = true);
 
     try {
-      // Fetch the stored user name
       final prefs = await SharedPreferences.getInstance();
       final name = prefs.getString(AppConstants.prefUserName) ?? 'User';
 
-      // TODO: Replace with real data from the database service
-      // final expenses = await DatabaseService.getRecentExpenses(limit: 5);
-
-      // ── Sample data for UI development ──
-      final sampleExpenses = <Map<String, String>>[
-        {
-          'title': 'Whole Foods Market',
-          'category': 'Groceries',
-          'amount': '\$65.40',
-          'date': 'Today',
-        },
-        {
-          'title': 'Chipotle',
-          'category': 'Food/Restaurant',
-          'amount': '\$14.25',
-          'date': 'Today',
-        },
-        {
-          'title': 'CVS Pharmacy',
-          'category': 'Medicine',
-          'amount': '\$23.99',
-          'date': 'Yesterday',
-        },
-        {
-          'title': 'Netflix',
-          'category': 'Entertainment',
-          'amount': '\$15.99',
-          'date': 'Feb 22',
-        },
-        {
-          'title': 'Zara',
-          'category': 'Clothes',
-          'amount': '\$89.00',
-          'date': 'Feb 21',
-        },
-      ];
+      final now = DateTime.now();
+      final results = await Future.wait([
+        DatabaseService.instance.getRecentExpenses(limit: 5),
+        DatabaseService.instance.getMonthlyTotal(now.year, now.month),
+        DatabaseService.instance.getExpenseCount(),
+        DatabaseService.instance.getDistinctCategoryCount(),
+        DatabaseService.instance.getAverageDailySpend(),
+        DatabaseService.instance.getHighestExpense(),
+        DatabaseService.instance.getBudgets(now.year, now.month),
+      ]);
 
       if (!mounted) return;
 
+      final budgets = results[6] as Map<String, double>;
+      final totalBudget =
+          budgets.values.fold(0.0, (sum, v) => sum + v);
+
       setState(() {
         _userName = name;
-        _recentExpenses = sampleExpenses;
+        _recentExpenses = results[0] as List<Expense>;
+        _monthlyTotal = results[1] as double;
+        _totalExpenseCount = results[2] as int;
+        _categoryCount = results[3] as int;
+        _avgPerDay = results[4] as double;
+        _highestAmount = results[5] as double;
+        _totalBudget = totalBudget;
         _isLoading = false;
       });
     } catch (e) {
@@ -169,11 +175,13 @@ class _HomeScreenState extends State<HomeScreen> {
             horizontal: AppConstants.paddingLarge,
           ),
           child: SpendingSummaryCard(
-            totalSpent: '\$208.63',
+            totalSpent: CurrencyService.instance.format(_monthlyTotal),
             monthLabel: _currentMonthLabel,
-            budgetTotal: 500,
+            spentAmount: _monthlyTotal,
+            budgetTotal: _totalBudget > 0 ? _totalBudget : null,
             onEditTap: () {
-              Navigator.pushNamed(context, AppConstants.budgetRoute);
+              Navigator.pushNamed(context, AppConstants.budgetRoute)
+                  .then((_) => _loadDashboardData());
             },
           ),
         ),
@@ -201,9 +209,7 @@ class _HomeScreenState extends State<HomeScreen> {
           child: SectionHeader(
             title: 'Recent Expenses',
             actionText: 'See all',
-            onActionTap: () {
-              // TODO: Switch to Expenses tab / navigate
-            },
+            onActionTap: widget.onSeeAllExpenses,
           ),
         ),
         const SizedBox(height: AppConstants.paddingSmall),
@@ -282,35 +288,30 @@ class _HomeScreenState extends State<HomeScreen> {
           QuickStatCard(
             icon: Icons.receipt_long_outlined,
             label: 'Receipts',
-            value: '${_recentExpenses.length}',
+            value: '$_totalExpenseCount',
             iconColor: AppConstants.primaryGreen,
-            onTap: () {
-              // TODO: Navigate to expenses
-            },
+            onTap: widget.onSeeAllExpenses,
           ),
           const SizedBox(width: 12),
           QuickStatCard(
             icon: Icons.category_outlined,
             label: 'Categories',
-            value: '${_uniqueCategories()}',
+            value: '$_categoryCount',
             iconColor: AppConstants.infoBlue,
-            onTap: () {
-              // TODO: Navigate to analytics
-            },
           ),
           const SizedBox(width: 12),
           QuickStatCard(
             icon: Icons.trending_down_outlined,
             label: 'Avg / Day',
-            value: '\$${_averagePerDay()}',
+            value: CurrencyService.instance.format(_avgPerDay, decimals: 0),
             iconColor: AppConstants.warningAmber,
           ),
           const SizedBox(width: 12),
           QuickStatCard(
             icon: Icons.arrow_upward_outlined,
             label: 'Highest',
-            value: _highestCategory(),
-            iconColor: const Color(0xFFD81B60), // pink
+            value: CurrencyService.instance.format(_highestAmount, decimals: 0),
+            iconColor: const Color(0xFFD81B60),
           ),
         ],
       ),
@@ -341,15 +342,18 @@ class _HomeScreenState extends State<HomeScreen> {
           return Column(
             children: [
               ExpenseListTile(
-                title: expense['title']!,
-                category: expense['category']!,
-                amount: expense['amount']!,
-                date: expense['date']!,
+                title: expense.merchantName,
+                category: expense.category,
+                amount: CurrencyService.instance.format(expense.totalAmount),
+                date: _formatDate(expense.date),
                 onTap: () {
-                  // TODO: Navigate to expense details
+                  Navigator.pushNamed(
+                    context,
+                    AppConstants.expenseDetailRoute,
+                    arguments: ExpenseDetailArgs(expenseId: expense.id),
+                  ).then((_) => _loadDashboardData());
                 },
               ),
-              // Divider between items (not after the last one)
               if (index < _recentExpenses.length - 1)
                 Divider(
                   height: 1,
@@ -391,8 +395,12 @@ class _HomeScreenState extends State<HomeScreen> {
             horizontal: AppConstants.paddingLarge,
           ),
           child: SpendingSummaryCard(
-            totalSpent: '\$0.00',
+            totalSpent: CurrencyService.instance.format(0),
             monthLabel: _currentMonthLabel,
+            spentAmount: 0,
+            budgetTotal: _totalBudget > 0 ? _totalBudget : null,
+            onEditTap: () => Navigator.pushNamed(context, AppConstants.budgetRoute)
+                .then((_) => _loadDashboardData()),
           ),
         ),
 
@@ -451,40 +459,13 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // ─── Data helpers (sample / placeholder) ──────────────────────────────────
-
-  /// Counts unique categories in current expenses.
-  int _uniqueCategories() {
-    return _recentExpenses
-        .map((e) => e['category'])
-        .toSet()
-        .length;
-  }
-
-  /// Computes a simple average-per-day from the sample data.
-  String _averagePerDay() {
-    // In production: totalSpent / daysElapsedThisMonth
-    const total = 208.63;
-    final daysElapsed = DateTime.now().day;
-    return (total / daysElapsed).toStringAsFixed(0);
-  }
-
-  /// Returns the category with the highest total in the sample data.
-  String _highestCategory() {
-    if (_recentExpenses.isEmpty) return '—';
-    // Simple: just return the category of the largest single expense
-    // In production this aggregates by category.
-    var maxAmount = 0.0;
-    var maxCategory = 'Others';
-    for (final expense in _recentExpenses) {
-      final amount = double.tryParse(
-            expense['amount']!.replaceAll(RegExp(r'[^\d.]'), ''),
-          ) ?? 0;
-      if (amount > maxAmount) {
-        maxAmount = amount;
-        maxCategory = expense['category']!;
-      }
-    }
-    return maxCategory;
+  /// Formats a date relative to today for the tile subtitle.
+  String _formatDate(DateTime date) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final d = DateTime(date.year, date.month, date.day);
+    if (d == today) return 'Today';
+    if (d == today.subtract(const Duration(days: 1))) return 'Yesterday';
+    return DateFormat('MMM d').format(date);
   }
 }

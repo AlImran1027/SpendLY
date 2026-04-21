@@ -115,3 +115,26 @@ app.*.map.json
 *.keystore
 *.jks
 key.properties
+**/claude.md
+
+# Firebase config (add when Firebase is integrated)
+google-services.json
+GoogleService-Info.plist
+
+# ─── Generated Dart files ─────────────────────────────────────────────────────
+*.g.dart
+*.freezed.dart
+*.mocks.dart
+
+# ─── Desktop platform ephemeral ───────────────────────────────────────────────
+/macos/Flutter/ephemeral/
+/windows/flutter/ephemeral/
+/linux/flutter/ephemeral/
+
+# ─── Flutter environment export ───────────────────────────────────────────────
+flutter_export_environment.sh
+
+# ─── Local debug / screenshot assets ─────────────────────────────────────────
+error image/
+error images/
+screenshots/

@@ -18,30 +18,14 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
+import 'package:intl/intl.dart' show DateFormat;
 
-import '../models/extracted_receipt_data.dart';
+import '../models/expense.dart';
+import '../services/currency_service.dart';
+import '../services/database_service.dart';
 import '../utils/constants.dart';
 import '../widgets/expense_list_tile.dart';
 import 'expense_detail_screen.dart';
-
-// ─── Sample data model (mirrors what SQLite will return) ──────────────────────
-
-class _Expense {
-  final int id;
-  final String title;
-  final String category;
-  final double amount;
-  final DateTime date;
-
-  const _Expense({
-    required this.id,
-    required this.title,
-    required this.category,
-    required this.amount,
-    required this.date,
-  });
-}
 
 // ═════════════════════════════════════════════════════════════════════════════
 // SCREEN
@@ -58,24 +42,30 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
   // ─── State ──────────────────────────────────────────────────────────────────
 
   bool _isLoading = true;
-  List<_Expense> _allExpenses = [];
-  String _searchQuery = '';
+  List<Expense> _allExpenses = [];
+  String _searchQuery = ''; // Stores what user types in the search field
   String _selectedCategory = 'All';
   _SortMode _sortMode = _SortMode.dateDesc;
 
-  final TextEditingController _searchController = TextEditingController();
-  final FocusNode _searchFocus = FocusNode();
+  final TextEditingController _searchController = TextEditingController(); // Controls the search field text
+  final FocusNode _searchFocus = FocusNode(); // Manages focus for the search field 
 
   // ─── Lifecycle ──────────────────────────────────────────────────────────────
+
+  void _onCurrencyChanged() {
+    if (mounted) setState(() {});
+  }
 
   @override
   void initState() {
     super.initState();
+    CurrencyService.instance.addListener(_onCurrencyChanged);
     _loadExpenses();
   }
 
   @override
   void dispose() {
+    CurrencyService.instance.removeListener(_onCurrencyChanged);
     _searchController.dispose();
     _searchFocus.dispose();
     super.dispose();
@@ -83,44 +73,20 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
 
   Future<void> _loadExpenses() async {
     setState(() => _isLoading = true);
-    // Simulate async fetch (replace with SQLite query later)
-    await Future.delayed(const Duration(milliseconds: 400));
-
-    // TODO: Replace with: await DatabaseService.getAllExpenses();
-    final now = DateTime.now();
-    final yesterday = now.subtract(const Duration(days: 1));
-    final twoDaysAgo = now.subtract(const Duration(days: 2));
-    final fiveDaysAgo = now.subtract(const Duration(days: 5));
-    final tenDaysAgo = now.subtract(const Duration(days: 10));
-
-    final sampleData = <_Expense>[
-      _Expense(id: 1, title: 'Whole Foods Market', category: 'Groceries', amount: 65.40, date: now),
-      _Expense(id: 2, title: 'Chipotle', category: 'Food/Restaurant', amount: 14.25, date: now),
-      _Expense(id: 3, title: 'CVS Pharmacy', category: 'Medicine', amount: 23.99, date: yesterday),
-      _Expense(id: 4, title: 'Netflix', category: 'Entertainment', amount: 15.99, date: yesterday),
-      _Expense(id: 5, title: 'Zara', category: 'Clothes', amount: 89.00, date: twoDaysAgo),
-      _Expense(id: 6, title: 'Home Depot', category: 'Hardware', amount: 42.75, date: twoDaysAgo),
-      _Expense(id: 7, title: 'Sephora', category: 'Cosmetics', amount: 55.00, date: fiveDaysAgo),
-      _Expense(id: 8, title: 'Trader Joe\'s', category: 'Groceries', amount: 38.60, date: fiveDaysAgo),
-      _Expense(id: 9, title: 'Starbucks', category: 'Food/Restaurant', amount: 8.50, date: fiveDaysAgo),
-      _Expense(id: 10, title: 'AMC Theatres', category: 'Entertainment', amount: 28.00, date: tenDaysAgo),
-      _Expense(id: 11, title: 'Walgreens', category: 'Medicine', amount: 12.49, date: tenDaysAgo),
-      _Expense(id: 12, title: 'IKEA', category: 'Hardware', amount: 134.00, date: tenDaysAgo),
-    ];
-
+    final expenses = await DatabaseService.instance.getExpenses();
     if (!mounted) return;
     setState(() {
-      _allExpenses = sampleData;
+      _allExpenses = expenses;
       _isLoading = false;
     });
   }
 
   // ─── Filtering & sorting ─────────────────────────────────────────────────
 
-  List<_Expense> get _filtered {
+  List<Expense> get _filtered {
     var list = _allExpenses.where((e) {
       final matchesSearch = _searchQuery.isEmpty ||
-          e.title.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+          e.merchantName.toLowerCase().contains(_searchQuery.toLowerCase()) ||
           e.category.toLowerCase().contains(_searchQuery.toLowerCase());
       final matchesCategory =
           _selectedCategory == 'All' || e.category == _selectedCategory;
@@ -133,22 +99,22 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
       case _SortMode.dateAsc:
         list.sort((a, b) => a.date.compareTo(b.date));
       case _SortMode.amountDesc:
-        list.sort((a, b) => b.amount.compareTo(a.amount));
+        list.sort((a, b) => b.totalAmount.compareTo(a.totalAmount));
       case _SortMode.amountAsc:
-        list.sort((a, b) => a.amount.compareTo(b.amount));
+        list.sort((a, b) => a.totalAmount.compareTo(b.totalAmount));
     }
 
     return list;
   }
 
   /// Groups a sorted expense list into date buckets for section headers.
-  Map<String, List<_Expense>> _groupByDate(List<_Expense> expenses) {
+  Map<String, List<Expense>> _groupByDate(List<Expense> expenses) {
     final now = DateTime.now();
     final todayStart = DateTime(now.year, now.month, now.day);
     final yesterdayStart = todayStart.subtract(const Duration(days: 1));
     final weekStart = todayStart.subtract(const Duration(days: 6));
 
-    final groups = <String, List<_Expense>>{};
+    final groups = <String, List<Expense>>{};
 
     for (final e in expenses) {
       final eDay = DateTime(e.date.year, e.date.month, e.date.day);
@@ -170,7 +136,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
 
   // ─── Helpers ──────────────────────────────────────────────────────────────
 
-  String _formatDate(_Expense e) {
+  String _formatDate(Expense e) {
     final now = DateTime.now();
     final todayStart = DateTime(now.year, now.month, now.day);
     final eDay = DateTime(e.date.year, e.date.month, e.date.day);
@@ -179,7 +145,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
     return DateFormat('MMM d').format(e.date);
   }
 
-  void _toggleSort(_SortMode mode) {
+  void _toggleSort(_SortMode mode) { // Toggle sorting mode when user taps on sort chips
     setState(() {
       if (_sortMode == mode) {
         // flip direction
@@ -198,17 +164,12 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
     });
   }
 
-  void _openDetail(_Expense expense) {
+  void _openDetail(Expense expense) {
     Navigator.pushNamed(
       context,
       AppConstants.expenseDetailRoute,
-      arguments: ExpenseDetailArgs(
-        expenseId: expense.id,
-        receiptData: ExtractedReceiptData.sample(imagePath: ''),
-        createdAt: expense.date,
-        modifiedAt: expense.date,
-      ),
-    );
+      arguments: ExpenseDetailArgs(expenseId: expense.id),
+    ).then((_) => _loadExpenses()); // reload after returning (edit/delete may have changed data)
   }
 
   // ─── BUILD ──────────────────────────────────────────────────────────────────
@@ -291,7 +252,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
     final now = DateTime.now();
     final monthTotal = _allExpenses
         .where((e) => e.date.year == now.year && e.date.month == now.month)
-        .fold(0.0, (s, e) => s + e.amount);
+        .fold(0.0, (s, e) => s + e.totalAmount);
     final monthLabel = DateFormat('MMMM yyyy').format(now);
 
     return Container(
@@ -329,7 +290,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '\$${monthTotal.toStringAsFixed(2)}',
+                  CurrencyService.instance.format(monthTotal),
                   style: const TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.w800,
@@ -337,10 +298,17 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                   ),
                 ),
                 const SizedBox(height: 2),
-                Text(
-                  '${_allExpenses.where((e) => e.date.year == now.year && e.date.month == now.month).length} expenses this month',
-                  style: const TextStyle(fontSize: 12, color: Colors.white60),
-                ),
+                Builder(builder: (_) {
+                  final count = _allExpenses
+                      .where((e) =>
+                          e.date.year == now.year &&
+                          e.date.month == now.month)
+                      .length;
+                  return Text(
+                    '$count expense${count == 1 ? '' : 's'} this month',
+                    style: const TextStyle(fontSize: 12, color: Colors.white60),
+                  );
+                }),
               ],
             ),
           ),
@@ -365,7 +333,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
       child: TextField(
         controller: _searchController,
         focusNode: _searchFocus,
-        onChanged: (v) => setState(() => _searchQuery = v),
+        onChanged: (v) => setState(() => _searchQuery = v), // Update search query on every change
         style: const TextStyle(fontSize: 14, color: AppConstants.textDark),
         decoration: InputDecoration(
           hintText: 'Search expenses…',
@@ -373,9 +341,9 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
           prefixIcon: const Icon(Icons.search, color: AppConstants.textMediumGray, size: 20),
           suffixIcon: _searchQuery.isNotEmpty
               ? IconButton(
-                  icon: const Icon(Icons.close, size: 18, color: AppConstants.textMediumGray),
+                  icon: const Icon(Icons.close, size: 18, color: AppConstants.textMediumGray), // Clear button appears only when there's text in the search field
                   onPressed: () {
-                    _searchController.clear();
+                    _searchController.clear(); // Clear the text field
                     setState(() => _searchQuery = '');
                     _searchFocus.unfocus();
                   },
@@ -409,7 +377,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
     return SizedBox(
       height: 52,
       child: ListView.separated(
-        scrollDirection: Axis.horizontal,
+        scrollDirection: Axis.horizontal, // Horizontal list of category chips
         padding: const EdgeInsets.symmetric(
           horizontal: AppConstants.paddingLarge,
           vertical: AppConstants.paddingSmall,
@@ -418,14 +386,14 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
         separatorBuilder: (ctx, i) => const SizedBox(width: 8),
         itemBuilder: (context, index) {
           final cat = categories[index];
-          final selected = _selectedCategory == cat;
+          final selected = _selectedCategory == cat; // Whether this category is currently selected
           return GestureDetector(
-            onTap: () => setState(() => _selectedCategory = cat),
+            onTap: () => setState(() => _selectedCategory = cat), // Update selected category on tap
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
               decoration: BoxDecoration(
-                color: selected ? AppConstants.primaryGreen : Colors.white,
+                color: selected ? AppConstants.primaryGreen : Colors.white, // Highlight selected category
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
                   color: selected
@@ -476,7 +444,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
       child: Row(
         children: [
           Text(
-            '${filtered.length} result${filtered.length == 1 ? '' : 's'}',
+            '${filtered.length} result${filtered.length == 1 ? '' : 's'}', // Shows how many expenses match the current filters
             style: const TextStyle(
               fontSize: 13,
               color: AppConstants.textMediumGray,
@@ -514,12 +482,12 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
   // ─── Expense list sliver ──────────────────────────────────────────────────
 
   Widget _buildExpenseList() {
-    final filtered = _filtered;
+    final filtered = _filtered; // Get the filtered and sorted list of expenses based on current search query, category filter, and sort mode
 
     if (filtered.isEmpty) {
       return SliverFillRemaining(
         hasScrollBody: false,
-        child: _buildEmptyState(),
+        child: _buildEmptyState(), // Show empty state if there are no expenses to display after nothig matches
       );
     }
 
@@ -556,7 +524,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                     ),
                     const Spacer(),
                     Text(
-                      '\$${items.fold(0.0, (s, e) => s + e.amount).toStringAsFixed(2)}',
+                      CurrencyService.instance.format(items.fold(0.0, (s, e) => s + e.totalAmount)),
                       style: const TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
@@ -586,9 +554,9 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                       return Column(
                         children: [
                           ExpenseListTile(
-                            title: expense.title,
+                            title: expense.merchantName,
                             category: expense.category,
-                            amount: '\$${expense.amount.toStringAsFixed(2)}',
+                            amount: CurrencyService.instance.format(expense.totalAmount),
                             date: _formatDate(expense),
                             onTap: () => _openDetail(expense),
                           ),

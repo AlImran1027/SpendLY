@@ -22,6 +22,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
+import '../services/currency_service.dart';
+import '../services/database_service.dart';
 import '../utils/constants.dart';
 
 // ─── Data model ───────────────────────────────────────────────────────────────
@@ -97,34 +99,56 @@ class _BudgetScreenState extends State<BudgetScreen> {
 
   // ─── Lifecycle ─────────────────────────────────────────────────────────────
 
+  void _onCurrencyChanged() {
+    if (mounted) setState(() {});
+  }
+
   @override
   void initState() {
     super.initState();
+    CurrencyService.instance.addListener(_onCurrencyChanged);
     _month = DateTime(DateTime.now().year, DateTime.now().month);
+    _budgets = [];
     _loadData();
+  }
+
+  @override
+  void dispose() {
+    CurrencyService.instance.removeListener(_onCurrencyChanged);
+    super.dispose();
   }
 
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
-    await Future.delayed(const Duration(milliseconds: 350));
-    // TODO: Replace with DatabaseService.getBudgetsForMonth(_month)
+
+    final categorySpendingFuture =
+        DatabaseService.instance.getCategoryTotals(_month.year, _month.month);
+    final savedBudgetsFuture =
+        DatabaseService.instance.getBudgets(_month.year, _month.month);
+
+    final categorySpending = await categorySpendingFuture;
+    final savedBudgets = await savedBudgetsFuture;
+
     if (!mounted) return;
+
+    final allCategories = {
+      ...AppConstants.expenseCategories,
+      ...categorySpending.keys,
+    };
+
+    final updated = allCategories.map((cat) {
+      return _CategoryBudget(
+        category: cat,
+        budget: savedBudgets[cat] ?? 0,
+        spent: categorySpending[cat] ?? 0,
+      );
+    }).toList();
+
     setState(() {
-      _budgets = _sampleBudgets();
+      _budgets = updated;
       _isLoading = false;
     });
   }
-
-  List<_CategoryBudget> _sampleBudgets() => [
-    _CategoryBudget(category: 'Groceries',       budget: 200, spent: 104.00),
-    _CategoryBudget(category: 'Food/Restaurant', budget: 100, spent: 22.75),
-    _CategoryBudget(category: 'Medicine',        budget: 50,  spent: 36.48),
-    _CategoryBudget(category: 'Entertainment',   budget: 40,  spent: 43.99),
-    _CategoryBudget(category: 'Clothes',         budget: 80,  spent: 89.00),
-    _CategoryBudget(category: 'Hardware',        budget: 0,   spent: 176.75),
-    _CategoryBudget(category: 'Cosmetics',       budget: 0,   spent: 55.00),
-    _CategoryBudget(category: 'Others',          budget: 0,   spent: 0),
-  ];
 
   // ─── Month navigation ──────────────────────────────────────────────────────
 
@@ -133,17 +157,15 @@ class _BudgetScreenState extends State<BudgetScreen> {
     return _month.year == now.year && _month.month == now.month;
   }
 
-  void _previousMonth() => setState(() {
-    _month = DateTime(_month.year, _month.month - 1);
-    _budgets = _sampleBudgets();
-  });
+  void _previousMonth() {
+    setState(() => _month = DateTime(_month.year, _month.month - 1));
+    _loadData();
+  }
 
   void _nextMonth() {
     if (_isCurrentMonth) return;
-    setState(() {
-      _month = DateTime(_month.year, _month.month + 1);
-      _budgets = _sampleBudgets();
-    });
+    setState(() => _month = DateTime(_month.year, _month.month + 1));
+    _loadData();
   }
 
   // ─── Computed totals ───────────────────────────────────────────────────────
@@ -306,7 +328,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
                   const Text('Spent',
                       style: TextStyle(fontSize: 11, color: Colors.white54)),
                   Text(
-                    '\$${_totalSpent.toStringAsFixed(2)}',
+                    CurrencyService.instance.format(_totalSpent),
                     style: const TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.w800,
@@ -322,7 +344,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
                   const Text('Budget',
                       style: TextStyle(fontSize: 11, color: Colors.white54)),
                   Text(
-                    '\$${_totalBudget.toStringAsFixed(2)}',
+                    CurrencyService.instance.format(_totalBudget),
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w700,
@@ -341,8 +363,8 @@ class _BudgetScreenState extends State<BudgetScreen> {
                 ),
                 child: Text(
                   _totalRemaining >= 0
-                      ? '\$${_totalRemaining.toStringAsFixed(0)} left'
-                      : '\$${(-_totalRemaining).toStringAsFixed(0)} over',
+                      ? '${CurrencyService.instance.format(_totalRemaining, decimals: 0)} left'
+                      : '${CurrencyService.instance.format(-_totalRemaining, decimals: 0)} over',
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
@@ -599,7 +621,11 @@ class _BudgetScreenState extends State<BudgetScreen> {
       backgroundColor: Colors.transparent,
       builder: (ctx) => _BudgetEditSheet(
         budget: budget,
-        onSave: (amount) => setState(() => budget.budget = amount),
+        onSave: (amount) async {
+          await DatabaseService.instance.upsertBudget(
+              budget.category, _month.year, _month.month, amount);
+          if (mounted) setState(() => budget.budget = amount);
+        },
       ),
     );
   }
@@ -624,8 +650,10 @@ class _BudgetScreenState extends State<BudgetScreen> {
       builder: (ctx) => _AddBudgetSheet(
         unbudgeted: unset,
         preselected: preselected ?? unset.first,
-        onSave: (category, amount) {
-          setState(() => category.budget = amount);
+        onSave: (category, amount) async {
+          await DatabaseService.instance.upsertBudget(
+              category.category, _month.year, _month.month, amount);
+          if (mounted) setState(() => category.budget = amount);
         },
       ),
     );
@@ -870,7 +898,7 @@ class _BudgetCategoryCard extends StatelessWidget {
           Row(
             children: [
               Text(
-                '\$${budget.spent.toStringAsFixed(2)} spent',
+                '${CurrencyService.instance.format(budget.spent)} spent',
                 style: const TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
@@ -879,15 +907,15 @@ class _BudgetCategoryCard extends StatelessWidget {
               ),
               const Spacer(),
               Text(
-                'of \$${budget.budget.toStringAsFixed(0)}',
+                'of ${CurrencyService.instance.format(budget.budget, decimals: 0)}',
                 style: const TextStyle(
                     fontSize: 12, color: AppConstants.textMediumGray),
               ),
               const SizedBox(width: 8),
               Text(
                 budget.isOverBudget
-                    ? '\$${(-budget.remaining).toStringAsFixed(2)} over'
-                    : '\$${budget.remaining.toStringAsFixed(2)} left',
+                    ? '${CurrencyService.instance.format(-budget.remaining)} over'
+                    : '${CurrencyService.instance.format(budget.remaining)} left',
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
@@ -1004,7 +1032,7 @@ class _UnbudgetedCard extends StatelessWidget {
                 ),
                 if (budget.spent > 0)
                   Text(
-                    '\$${budget.spent.toStringAsFixed(2)} spent — untracked',
+                    '${CurrencyService.instance.format(budget.spent)} spent — untracked',
                     style: const TextStyle(
                         fontSize: 11, color: AppConstants.warningAmber),
                   )
@@ -1041,7 +1069,7 @@ class _UnbudgetedCard extends StatelessWidget {
 class _BudgetEditSheet extends StatefulWidget {
   const _BudgetEditSheet({required this.budget, required this.onSave});
   final _CategoryBudget budget;
-  final void Function(double amount) onSave;
+  final Future<void> Function(double amount) onSave;
 
   @override
   State<_BudgetEditSheet> createState() => _BudgetEditSheetState();
@@ -1067,14 +1095,14 @@ class _BudgetEditSheetState extends State<_BudgetEditSheet> {
     super.dispose();
   }
 
-  void _save() {
+  Future<void> _save() async {
     final value = double.tryParse(_ctrl.text.trim());
     if (value == null || value <= 0) {
       setState(() => _error = 'Enter a valid amount greater than 0.');
       return;
     }
-    widget.onSave(value);
-    Navigator.pop(context);
+    await widget.onSave(value);
+    if (mounted) Navigator.pop(context);
   }
 
   @override
@@ -1177,7 +1205,7 @@ class _AddBudgetSheet extends StatefulWidget {
   });
   final List<_CategoryBudget> unbudgeted;
   final _CategoryBudget preselected;
-  final void Function(_CategoryBudget category, double amount) onSave;
+  final Future<void> Function(_CategoryBudget category, double amount) onSave;
 
   @override
   State<_AddBudgetSheet> createState() => _AddBudgetSheetState();
@@ -1200,14 +1228,14 @@ class _AddBudgetSheetState extends State<_AddBudgetSheet> {
     super.dispose();
   }
 
-  void _save() {
+  Future<void> _save() async {
     final value = double.tryParse(_ctrl.text.trim());
     if (value == null || value <= 0) {
       setState(() => _error = 'Enter a valid amount greater than 0.');
       return;
     }
-    widget.onSave(_selected, value);
-    Navigator.pop(context);
+    await widget.onSave(_selected, value);
+    if (mounted) Navigator.pop(context);
   }
 
   @override
@@ -1329,7 +1357,7 @@ class _AddBudgetSheetState extends State<_AddBudgetSheet> {
                       size: 13, color: AppConstants.warningAmber),
                   const SizedBox(width: 6),
                   Text(
-                    '\$${_selected.spent.toStringAsFixed(2)} already spent this month.',
+                    '${CurrencyService.instance.format(_selected.spent)} already spent this month.',
                     style: const TextStyle(
                         fontSize: 12, color: AppConstants.warningAmber),
                   ),
@@ -1399,7 +1427,7 @@ class _AmountField extends StatelessWidget {
       decoration: InputDecoration(
         labelText: 'Monthly budget amount',
         labelStyle: const TextStyle(color: AppConstants.textMediumGray),
-        prefixText: '\$ ',
+        prefixText: '${CurrencyService.instance.symbol} ',
         prefixStyle: const TextStyle(
           fontSize: 18,
           fontWeight: FontWeight.w600,

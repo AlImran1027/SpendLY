@@ -16,9 +16,14 @@ library;
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
+import 'package:intl/intl.dart' show DateFormat;
 
+import '../models/expense.dart';
 import '../models/extracted_receipt_data.dart';
+import '../services/currency_service.dart';
+import '../services/database_service.dart';
+import '../services/gemini_service.dart';
+import '../services/lm_studio_service.dart';
 import '../utils/constants.dart';
 import 'expense_entry_screen.dart';
 
@@ -119,37 +124,282 @@ class _ExtractionResultsScreenState extends State<ExtractionResultsScreen>
     super.dispose();
   }
 
-  // ─── Extraction (Simulated) ─────────────────────────────────────────────────
+  // ─── Extraction ────────────────────────────────────────────────────────────
 
-  /// Simulates a Gemini API extraction call.
-  ///
-  /// In production this would send the image to the Generative AI SDK,
-  /// parse the JSON response via [ExtractedReceiptData.fromJson], and
-  /// populate the fields. For now we use sample data.
+  /// Picks the active backend (LM Studio preferred; falls back to Gemini)
+  /// and runs extraction. Prompts for setup if neither is configured.
   Future<void> _runExtraction() async {
+    final useLMStudio = LMStudioService.instance.isConfigured;
+    final useGemini = GeminiService.instance.hasApiKey;
+
+    // Neither configured — show a picker so the user can set one up.
+    if (!useLMStudio && !useGemini) {
+      final chosen = await _promptBackendChoice();
+      if (!chosen || !mounted) return;
+    }
+
     setState(() {
       _isExtracting = true;
       _extractionFailed = false;
     });
 
-    // Simulate network round-trip (2–3 seconds).
-    await Future.delayed(const Duration(milliseconds: 2500));
-    if (!mounted) return;
-
-    // TODO: Replace with real Gemini API call.
-    final data = ExtractedReceiptData.sample(imagePath: _imagePath);
-
-    setState(() {
-      _data = data;
-      _isExtracting = false;
-    });
-
-    // Kick off entrance animations.
-    _bannerController.forward();
-    _staggerController.forward();
+    try {
+      final ExtractedReceiptData data;
+      if (LMStudioService.instance.isConfigured) {
+        data = await LMStudioService.instance.extractFromImage(_imagePath);
+      } else {
+        data = await GeminiService.instance.extractFromImage(_imagePath);
+      }
+      if (!mounted) return;
+      setState(() {
+        _data = data;
+        _isExtracting = false;
+      });
+      _bannerController.forward();
+      _staggerController.forward();
+    } on LMStudioNotConfiguredException {
+      if (!mounted) return;
+      setState(() { _isExtracting = false; _extractionFailed = true; });
+      _showError('LM Studio not configured. Tap ⟳ to set it up.');
+    } on GeminiApiKeyMissingException {
+      if (!mounted) return;
+      setState(() { _isExtracting = false; _extractionFailed = true; });
+      _showError('Gemini API key not configured. Tap ⟳ to set it up.');
+    } catch (e) {
+      if (!mounted) return;
+      setState(() { _isExtracting = false; _extractionFailed = true; });
+      _showError('Extraction failed: ${_friendlyError(e)}');
+    }
   }
 
-  /// Retries extraction after a failure.
+  /// Shows a choice dialog so the user can pick LM Studio or Gemini.
+  /// Returns true once a backend has been configured.
+  Future<bool> _promptBackendChoice() async {
+    final choice = await showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Choose AI Backend'),
+        content: const Text(
+          'No extraction service is configured yet.\n\n'
+          '• LM Studio — runs locally on your device or network (private).\n'
+          '• Gemini — Google cloud API (requires an API key).',
+          style: TextStyle(fontSize: 13, color: AppConstants.textMediumGray, height: 1.5),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          OutlinedButton(
+            onPressed: () => Navigator.pop(ctx, 'gemini'),
+            child: const Text('Use Gemini'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: AppConstants.primaryGreen),
+            onPressed: () => Navigator.pop(ctx, 'lmstudio'),
+            child: const Text('Use LM Studio'),
+          ),
+        ],
+      ),
+    );
+
+    if (!mounted) return false;
+    if (choice == 'lmstudio') return _promptForLMStudioSetup();
+    if (choice == 'gemini') return _promptForApiKey();
+    return false;
+  }
+
+  /// Shows a dialog to configure the LM Studio server URL and optional model name.
+  /// Returns true if successfully saved.
+  Future<bool> _promptForLMStudioSetup() async {
+    final urlCtrl = TextEditingController(text: LMStudioService.defaultServerUrl);
+    final modelCtrl = TextEditingController(text: LMStudioService.instance.modelName);
+    String? urlError;
+
+    final saved = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: const Text('LM Studio Setup'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Enter the URL where LM Studio is running and the name of a '
+                'vision-capable model you have loaded.',
+                style: TextStyle(fontSize: 13, color: AppConstants.textMediumGray, height: 1.5),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: urlCtrl,
+                autofocus: true,
+                keyboardType: TextInputType.url,
+                onChanged: (_) {
+                  if (urlError != null) setDialogState(() => urlError = null);
+                },
+                decoration: InputDecoration(
+                  labelText: 'Server URL',
+                  hintText: 'http://192.168.1.x:1234',
+                  prefixIcon: const Icon(Icons.computer_outlined),
+                  border: const OutlineInputBorder(),
+                  errorText: urlError,
+                ),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: modelCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Model name (optional)',
+                  hintText: 'llava-v1.5-7b',
+                  prefixIcon: Icon(Icons.smart_toy_outlined),
+                  border: OutlineInputBorder(),
+                  helperText: 'Leave blank to use whatever model is loaded.',
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              style: FilledButton.styleFrom(backgroundColor: AppConstants.primaryGreen),
+              onPressed: () async {
+                final url = urlCtrl.text.trim();
+                if (url.isEmpty) {
+                  setDialogState(() => urlError = 'Please enter a server URL.');
+                  return;
+                }
+                await LMStudioService.instance.setServerUrl(url);
+                await LMStudioService.instance.setModelName(modelCtrl.text);
+                if (ctx.mounted) Navigator.pop(ctx, true);
+              },
+              child: const Text('Save & Connect'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    urlCtrl.dispose();
+    modelCtrl.dispose();
+    return saved == true;
+  }
+
+  /// Shows an AlertDialog asking the user to enter their Gemini API key.
+  /// Returns true if a key was successfully saved.
+  Future<bool> _promptForApiKey() async {
+    final ctrl = TextEditingController();
+    String? errorText;
+
+    final saved = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: const Text('Gemini API Key Required'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Receipt extraction uses the Google Gemini API. '
+                'Enter your API key to continue.',
+                style:
+                    TextStyle(fontSize: 13, color: AppConstants.textMediumGray),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: ctrl,
+                autofocus: true,
+                obscureText: true,
+                onChanged: (_) {
+                  if (errorText != null) {
+                    setDialogState(() => errorText = null);
+                  }
+                },
+                decoration: InputDecoration(
+                  labelText: 'API Key',
+                  hintText: 'AIza...',
+                  prefixIcon: const Icon(Icons.key_outlined),
+                  border: const OutlineInputBorder(),
+                  errorText: errorText,
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'You can also set this later in Profile → Settings.',
+                style: TextStyle(
+                    fontSize: 11, color: AppConstants.textLightGray),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: AppConstants.primaryGreen,
+              ),
+              onPressed: () async {
+                final key = ctrl.text.trim();
+                if (key.isEmpty) {
+                  setDialogState(() => errorText = 'Please enter an API key.');
+                  return;
+                }
+                await GeminiService.instance.setApiKey(key);
+                if (ctx.mounted) Navigator.pop(ctx, true);
+              },
+              child: const Text('Save & Continue'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    ctrl.dispose();
+    return saved == true;
+  }
+
+  /// Returns a user-friendly error message for common exceptions.
+  String _friendlyError(Object e) {
+    if (e is LMStudioParseException) return 'Could not parse model response. Try a vision-capable model.';
+    if (e is GeminiParseException) return 'Could not parse Gemini response.';
+    final msg = e.toString().toLowerCase();
+    if (msg.contains('api_key') || msg.contains('api key') || msg.contains('invalid key')) {
+      return 'Invalid API key. Please check your key in Profile → Settings.';
+    }
+    if (msg.contains('quota') || msg.contains('rate limit')) {
+      return 'API quota exceeded. Please try again later.';
+    }
+    if (msg.contains('refused') || msg.contains('connection') || msg.contains('socket')) {
+      return 'Cannot reach LM Studio. Check the server URL and that LM Studio is running.';
+    }
+    if (msg.contains('network') || msg.contains('timeout')) {
+      return 'Network error. Check your connection and retry.';
+    }
+    return e.toString().replaceFirst('Exception: ', '');
+  }
+
+  void _showError(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: AppConstants.errorRed,
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 4),
+      ),
+    );
+  }
+
+  /// Retries extraction (re-prompts for key if it was cleared after failure).
   Future<void> _retryExtraction() async {
     await _runExtraction();
   }
@@ -265,16 +515,30 @@ class _ExtractionResultsScreenState extends State<ExtractionResultsScreen>
 
   Future<void> _saveExpense() async {
     if (!_canSave || _isSaving) return;
+    final data = _data!;
     setState(() => _isSaving = true);
 
-    // TODO: Save to SQLite via ExpenseDao.
-    await Future.delayed(const Duration(seconds: 1));
-    if (!mounted) return;
+    try {
+      // Compute average AI confidence across all extracted fields.
+      final confidences = [
+        data.merchantConfidence,
+        data.dateConfidence,
+        data.totalConfidence,
+        data.categoryConfidence,
+        data.paymentMethodConfidence,
+        ...data.items.map((i) => i.confidence),
+      ].where((c) => c > 0).toList();
+      final avgConfidence = confidences.isEmpty
+          ? null
+          : confidences.reduce((a, b) => a + b) / confidences.length;
 
-    setState(() => _isSaving = false);
+      final expense = Expense.fromExtractedReceiptData(
+        data,
+        aiConfidence: avgConfidence,
+      );
+      await DatabaseService.instance.insertExpense(expense);
 
-    // Pop back to home and show success snackbar.
-    if (mounted) {
+      if (!mounted) return;
       Navigator.popUntil(context, (route) => route.isFirst);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -288,10 +552,19 @@ class _ExtractionResultsScreenState extends State<ExtractionResultsScreen>
           backgroundColor: AppConstants.primaryGreen,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
-            borderRadius:
-                BorderRadius.circular(AppConstants.borderRadiusSmall),
+            borderRadius: BorderRadius.circular(AppConstants.borderRadiusSmall),
           ),
           duration: const Duration(seconds: 3),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isSaving = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to save expense: $e'),
+          backgroundColor: AppConstants.errorRed,
+          behavior: SnackBarBehavior.floating,
         ),
       );
     }
@@ -347,9 +620,11 @@ class _ExtractionResultsScreenState extends State<ExtractionResultsScreen>
       child: Scaffold(
         backgroundColor: const Color(0xFFF8F9FA),
         appBar: _buildAppBar(),
-        body: _isExtracting ? _buildLoadingState() : _buildContent(),
+        body: _isExtracting
+            ? _buildLoadingState()
+            : (_data == null ? _buildFailedState() : _buildContent()),
         bottomNavigationBar:
-            _isExtracting ? null : _buildBottomActions(),
+            (_isExtracting || _data == null) ? null : _buildBottomActions(),
       ),
     );
   }
@@ -482,6 +757,63 @@ class _ExtractionResultsScreenState extends State<ExtractionResultsScreen>
         ),
       );
     });
+  }
+
+  // ─── Failed State ───────────────────────────────────────────────────────────
+
+  Widget _buildFailedState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(AppConstants.paddingXLarge),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.error_outline_rounded,
+              size: 64,
+              color: AppConstants.errorRed.withValues(alpha: 0.7),
+            ),
+            const SizedBox(height: AppConstants.paddingLarge),
+            const Text(
+              'Extraction Failed',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: AppConstants.textDark,
+              ),
+            ),
+            const SizedBox(height: AppConstants.paddingSmall),
+            const Text(
+              'Could not extract receipt data.\nCheck your API key and internet connection, then try again.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 14,
+                color: AppConstants.textMediumGray,
+                height: 1.5,
+              ),
+            ),
+            const SizedBox(height: AppConstants.paddingXLarge),
+            FilledButton.icon(
+              onPressed: _retryExtraction,
+              icon: const Icon(Icons.refresh),
+              label: const Text('Retry'),
+              style: FilledButton.styleFrom(
+                backgroundColor: AppConstants.primaryGreen,
+                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+              ),
+            ),
+            const SizedBox(height: AppConstants.paddingMedium),
+            OutlinedButton(
+              onPressed: () => Navigator.of(context).pop(),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppConstants.textMediumGray,
+              ),
+              child: const Text('Go Back'),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   // ─── Main Content ───────────────────────────────────────────────────────────
@@ -727,7 +1059,7 @@ class _ExtractionResultsScreenState extends State<ExtractionResultsScreen>
     final data = _data!;
     final isEditing = _editingField == 'amount';
     final formatted = data.totalAmount > 0
-        ? 'Rs. ${NumberFormat('#,##0.00').format(data.totalAmount)}'
+        ? CurrencyService.instance.format(data.totalAmount)
         : 'Not detected. Tap to enter';
 
     return _fieldCard(
@@ -906,7 +1238,7 @@ class _ExtractionResultsScreenState extends State<ExtractionResultsScreen>
                             const SizedBox(height: 2),
                             Text(
                               '${item.quantity > 1 ? '${item.quantity.toStringAsFixed(item.quantity.truncateToDouble() == item.quantity ? 0 : 1)} × ' : ''}'
-                              'Rs. ${NumberFormat('#,##0.00').format(item.unitPrice)}',
+                              '${CurrencyService.instance.format(item.unitPrice)}',
                               style: const TextStyle(
                                 fontSize: 12,
                                 color: AppConstants.textMediumGray,
@@ -921,7 +1253,7 @@ class _ExtractionResultsScreenState extends State<ExtractionResultsScreen>
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
                           Text(
-                            'Rs. ${NumberFormat('#,##0.00').format(item.subtotal)}',
+                            CurrencyService.instance.format(item.subtotal),
                             style: const TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
