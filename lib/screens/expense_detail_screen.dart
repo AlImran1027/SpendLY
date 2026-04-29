@@ -27,7 +27,6 @@ import '../models/extracted_receipt_data.dart';
 import '../services/currency_service.dart';
 import '../services/database_service.dart';
 import '../utils/constants.dart';
-import 'expense_entry_screen.dart';
 
 // ─── Route Arguments ──────────────────────────────────────────────────────────
 
@@ -286,32 +285,6 @@ class _ExpenseDetailScreenState extends State<ExpenseDetailScreen>
 
   // ─── Navigation & Actions ─────────────────────────────────────────────────
 
-  void _navigateToEdit() {
-    if (_data == null) return;
-    Navigator.pushNamed(
-      context,
-      AppConstants.expenseEntryRoute,
-      arguments: ExpenseEntryArgs(
-        extractedData: _data,
-        isEditMode: true,
-        existingExpenseId: _expenseId,
-      ),
-    ).then((_) {
-      // Reload from DB after returning from edit
-      if (_expenseId != null && mounted) {
-        DatabaseService.instance.getExpenseById(_expenseId!).then((expense) {
-          if (expense != null && mounted) {
-            setState(() {
-              _data = expense.toExtractedReceiptData();
-              _notes = expense.notes.isNotEmpty ? expense.notes : null;
-              _modifiedAt = expense.modifiedAt;
-            });
-          }
-        });
-      }
-    });
-  }
-
   void _showDeleteConfirmation() {
     if (_data == null) return;
 
@@ -466,29 +439,9 @@ class _ExpenseDetailScreenState extends State<ExpenseDetailScreen>
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.edit_outlined,
-                color: AppConstants.primaryGreen),
-            tooltip: 'Edit Expense',
-            onPressed: _navigateToEdit,
-          ),
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert, color: AppConstants.textDark),
-            onSelected: (value) {
-              if (value == 'delete') _showDeleteConfirmation();
-            },
-            itemBuilder: (_) => [
-              const PopupMenuItem(
-                value: 'delete',
-                child: Row(
-                  children: [
-                    Icon(Icons.delete_outline, color: AppConstants.errorRed,
-                        size: 20),
-                    SizedBox(width: 8),
-                    Text('Delete', style: TextStyle(color: AppConstants.errorRed)),
-                  ],
-                ),
-              ),
-            ],
+            icon: const Icon(Icons.delete_outline, color: AppConstants.errorRed),
+            tooltip: 'Delete Expense',
+            onPressed: _showDeleteConfirmation,
           ),
         ],
       ),
@@ -601,15 +554,11 @@ class _ExpenseDetailScreenState extends State<ExpenseDetailScreen>
                   ),
                 ),
 
-                // Bottom padding for sticky buttons
-                const SizedBox(height: 100),
+                const SizedBox(height: 24),
               ],
             ),
           ),
         ),
-
-        // ── Sticky Action Buttons ──
-        _buildActionBar(),
       ],
     );
   }
@@ -1244,76 +1193,6 @@ class _ExpenseDetailScreenState extends State<ExpenseDetailScreen>
     );
   }
 
-  // ─── Sticky Action Bar ────────────────────────────────────────────────────
-
-  Widget _buildActionBar() {
-    return Container(
-      padding: EdgeInsets.only(
-        left: 16,
-        right: 16,
-        top: 16,
-        bottom: 16 + MediaQuery.of(context).padding.bottom,
-      ),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
-            blurRadius: 10,
-            offset: const Offset(0, -2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          // Edit button
-          Expanded(
-            child: OutlinedButton.icon(
-              onPressed: _navigateToEdit, // Navigate to the edit screen
-              icon: const Icon(Icons.edit_outlined, size: 18),
-              label: const Text(
-                'Edit',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: AppConstants.primaryGreen,
-                side: const BorderSide(
-                    color: AppConstants.primaryGreen, width: 1),
-                minimumSize: const Size(0, 56),
-                shape: RoundedRectangleBorder(
-                  borderRadius:
-                      BorderRadius.circular(AppConstants.borderRadiusSmall),
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-
-          // Delete button
-          Expanded(
-            child: ElevatedButton.icon(
-              onPressed: _showDeleteConfirmation, // Show delete confirmation dialog
-              icon: const Icon(Icons.delete_outline, size: 18),
-              label: const Text(
-                'Delete',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppConstants.errorRed,
-                foregroundColor: Colors.white,
-                minimumSize: const Size(0, 56),
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius:
-                      BorderRadius.circular(AppConstants.borderRadiusSmall),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 // ═════════════════════════════════════════════════════════════════════════════

@@ -41,6 +41,7 @@ dependencies:
   path: ^1.9.1
   google_generative_ai: ^0.4.6
   http: ^1.2.2
+  flutter_local_notifications: ^17.2.0
 
 dev_dependencies:
   flutter_test:

@@ -126,9 +126,9 @@ class DatabaseService {
     int newId = 0;
 
     await db.transaction((txn) async {
-      newId = await txn.insert(_tExpenses, expense.toMap());
+      newId = await txn.insert(_tExpenses, expense.toMap()); // Insert the expense header, get the new id.
       for (final item in expense.items) {
-        await txn.insert(_tItems, item.toMap(expenseId: newId));
+        await txn.insert(_tItems, item.toMap(expenseId: newId)); // Insert each item with the new expenseId as FK.
       }
     });
 
@@ -136,13 +136,13 @@ class DatabaseService {
   }
 
   /// Returns all expenses sorted newest-first, each with its items.
-  Future<List<Expense>> getExpenses() async {
-    final db = await database;
-    final rows = await db.query(
+  Future<List<Expense>> getExpenses() async {// Used by the "All Expenses" screen.
+    final db = await database; 
+    final rows = await db.query( // Get all expenses, sorted by date (newest first).
       _tExpenses,
       orderBy: 'date DESC, created_at DESC',
     );
-    return _attachItems(db, rows);
+    return _attachItems(db, rows); 
   }
 
   /// Returns the [limit] most-recent expenses (for the home dashboard).

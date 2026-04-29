@@ -91,7 +91,7 @@ class GeminiService {
   Future<ExtractedReceiptData> extractFromImage(String imagePath) async {
     if (!hasApiKey) throw const GeminiApiKeyMissingException();
 
-    final imageFile = File(imagePath);
+    final imageFile = File(imagePath); // Ensure the file exists before sending to the model.
     if (!await imageFile.exists()) {
       throw Exception('Receipt image not found at: $imagePath');
     }
@@ -99,9 +99,9 @@ class GeminiService {
     final imageBytes = await imageFile.readAsBytes();
     final mime = _mimeType(imagePath);
 
-    final model = GenerativeModel(model: _model, apiKey: _apiKey!);
+    final model = GenerativeModel(model: _model, apiKey: _apiKey!); //
 
-    final response = await model.generateContent([
+    final response = await model.generateContent([ // Send both the image and the prompt as input to the model.
       Content.multi([
         DataPart(mime, imageBytes),
         TextPart(_extractionPrompt),
@@ -114,9 +114,9 @@ class GeminiService {
     }
 
     try {
-      final jsonStr = _extractJsonString(raw);
+      final jsonStr = _extractJsonString(raw); // Strip markdown and find the JSON block in the response.
       final json = jsonDecode(jsonStr) as Map<String, dynamic>;
-      return ExtractedReceiptData.fromJson(json, imagePath: imagePath);
+      return ExtractedReceiptData.fromJson(json, imagePath: imagePath); // Parse the JSON into our data model.
     } on FormatException catch (e) {
       throw GeminiParseException('Invalid JSON in response: ${e.message}');
     }

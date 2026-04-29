@@ -60,7 +60,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
   void initState() {
     super.initState();
     CurrencyService.instance.addListener(_onCurrencyChanged);
-    _loadExpenses();
+    _loadExpenses(); // Load expenses from the database when the screen initializes
   }
 
   @override
@@ -73,10 +73,10 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
 
   Future<void> _loadExpenses() async {
     setState(() => _isLoading = true);
-    final expenses = await DatabaseService.instance.getExpenses();
+    final expenses = await DatabaseService.instance.getExpenses(); //call DB
     if (!mounted) return;
     setState(() {
-      _allExpenses = expenses;
+      _allExpenses = expenses; // Update the state with the loaded expenses
       _isLoading = false;
     });
   }

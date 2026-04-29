@@ -96,9 +96,9 @@ class LMStudioService {
   Future<List<String>> fetchAvailableModels() async {
     if (!isConfigured) return [];
     try {
-      final uri = Uri.parse('$serverUrl/v1/models');
+      final uri = Uri.parse('$serverUrl/v1/models'); //
       final response =
-          await http.get(uri).timeout(const Duration(seconds: 5));
+          await http.get(uri).timeout(const Duration(seconds: 5)); // Send a GET request to the /v1/models endpoint to retrieve the list of available models.
       if (response.statusCode != 200) return [];
       final body = jsonDecode(response.body) as Map<String, dynamic>;
       final data = body['data'] as List<dynamic>? ?? [];
@@ -134,17 +134,17 @@ class LMStudioService {
     final dataUrl = 'data:$mimeType;base64,$base64Image';
 
     final requestBody = jsonEncode({
-      'model': _modelName ?? '',
+      'model': _modelName ?? '', // Let LM Studio use the currently loaded model if none specified.
       'messages': [
         {
           'role': 'user',
           'content': [
             {
-              'type': 'image_url',
+              'type': 'image_url', // The receipt image
               'image_url': {'url': dataUrl},
             },
             {
-              'type': 'text',
+              'type': 'text', // The extraction prompt with instructions for the model.
               'text': _extractionPrompt,
             },
           ],
@@ -155,12 +155,12 @@ class LMStudioService {
       'stream': false,
     });
 
-    final uri = Uri.parse('$serverUrl/v1/chat/completions');
+    final uri = Uri.parse('$serverUrl/v1/chat/completions'); // Construct the full URI for the chat completions endpoint.
     final response = await http
         .post(
           uri,
-          headers: {'Content-Type': 'application/json'},
-          body: requestBody,
+          headers: {'Content-Type': 'application/json'}, // Set the content type to JSON for the request.
+          body: requestBody, // Send the image as a base64 data URL along with the prompt in the messages array.
         )
         .timeout(const Duration(seconds: 120));
 

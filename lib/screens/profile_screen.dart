@@ -90,16 +90,16 @@ class _ProfileScreenState extends State<ProfileScreen>
   Future<void> _loadUserData() async {
     final prefs = await SharedPreferences.getInstance();
     final db = DatabaseService.instance;
+    final now = DateTime.now();
 
     final results = await Future.wait([
       db.getExpenseCount(),
-      db.getHighestExpense(),
+      db.getBudgetCount(now.year, now.month),
     ]);
-    final count = results[0] as int;
-    final highest = results[1] as double;
+    final count = results[0];
+    final budgetCount = results[1];
 
     // Sum all monthly totals for the current year as total-spent proxy.
-    final now = DateTime.now();
     final monthTotals = await Future.wait(
       List.generate(now.month, (i) => db.getMonthlyTotal(now.year, i + 1)),
     );
@@ -119,9 +119,8 @@ class _ProfileScreenState extends State<ProfileScreen>
       _totalExpenses = count;
       _totalSpentRaw = totalSpentAmt;
       _totalSpent = CurrencyService.instance.format(totalSpentAmt);
-      _activeBudgets = 0; // budgets table pending — show 0
+      _activeBudgets = budgetCount;
     });
-    debugPrint('ProfileScreen: highest expense = $highest'); // used once budgets table is live
   }
 
   // ─── Preference keys ──────────────────────────────────────────────────────
@@ -981,9 +980,11 @@ class _ProfileScreenState extends State<ProfileScreen>
     String testStatus = '';
     List<String> availableModels = [];
     bool isTesting = false;
+    bool dialogClosed = false;
 
     await showDialog<void>(
       context: context,
+      barrierDismissible: false,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
           shape: RoundedRectangleBorder(
@@ -1056,6 +1057,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                               setDialogState(() { isTesting = true; testStatus = ''; availableModels = []; });
                               await LMStudioService.instance.setServerUrl(url);
                               final models = await LMStudioService.instance.fetchAvailableModels();
+                              if (dialogClosed || !ctx.mounted) return;
                               setDialogState(() {
                                 isTesting = false;
                                 if (models.isEmpty) {
@@ -1162,20 +1164,29 @@ class _ProfileScreenState extends State<ProfileScreen>
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(ctx),
+              onPressed: () {
+                dialogClosed = true;
+                Navigator.pop(ctx);
+              },
               child: const Text('Cancel', style: TextStyle(color: AppConstants.textMediumGray)),
             ),
             FilledButton(
               style: FilledButton.styleFrom(backgroundColor: const Color(0xFF7B1FA2)),
-              onPressed: () async {
+              onPressed: () {
                 final url = urlCtrl.text.trim();
                 if (url.isEmpty) {
                   setDialogState(() => urlError = 'Please enter a server URL.');
                   return;
                 }
-                await LMStudioService.instance.setServerUrl(url);
-                await LMStudioService.instance.setModelName(modelCtrl.text);
-                if (ctx.mounted) Navigator.pop(ctx);
+                // Capture values before closing — controllers will be disposed
+                // after showDialog returns.
+                final model = modelCtrl.text;
+                dialogClosed = true;
+                Navigator.pop(ctx);
+                // Fire-and-forget: in-memory state updates synchronously inside
+                // each setter, so the profile rebuild already sees the new values.
+                LMStudioService.instance.setServerUrl(url);
+                LMStudioService.instance.setModelName(model);
               },
               child: const Text('Save'),
             ),
@@ -1319,9 +1330,9 @@ class _ProfileScreenState extends State<ProfileScreen>
 
   Future<void> _performLogout() async {
     final prefs = await SharedPreferences.getInstance();
+    // Only clear the session flag — preserve profile data (name, email) so
+    // they survive logout/login cycles.
     await prefs.remove(AppConstants.prefIsLoggedIn);
-    await prefs.remove(AppConstants.prefUserEmail);
-    await prefs.remove(AppConstants.prefUserName);
     await prefs.remove(AppConstants.prefUserId);
 
     if (!mounted) return;

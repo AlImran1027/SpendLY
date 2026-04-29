@@ -157,9 +157,14 @@ class _LoginScreenState extends State<LoginScreen>
       // ── Persist login state ──
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool(AppConstants.prefIsLoggedIn, true);
-      await prefs.setString(AppConstants.prefUserEmail, email);
-      await prefs.setString(AppConstants.prefUserName,
-          email.split('@').first); // temporary display name
+      // Only initialise name/email on the very first login — never overwrite
+      // profile edits the user may have made in a previous session.
+      if (prefs.getString(AppConstants.prefUserEmail) == null) {
+        await prefs.setString(AppConstants.prefUserEmail, email);
+      }
+      if (prefs.getString(AppConstants.prefUserName) == null) {
+        await prefs.setString(AppConstants.prefUserName, email.split('@').first);
+      }
 
       if (!mounted) return;
 

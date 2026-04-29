@@ -491,12 +491,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
             ],
           ),
           const SizedBox(height: 10),
-          ..._budgeted.map(
-            (b) => _BudgetCategoryCard(
-              budget: b,
-              onEdit: () => _showEditSheet(b),
-            ),
-          ),
+          ..._budgeted.map((b) => _BudgetCategoryCard(budget: b)),
         ],
       ),
     );
@@ -608,23 +603,6 @@ class _BudgetScreenState extends State<BudgetScreen> {
   }
 
   // ─── Bottom sheets ─────────────────────────────────────────────────────────
-
-  /// Opens the edit sheet for an existing budget entry.
-  void _showEditSheet(_CategoryBudget budget) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => _BudgetEditSheet(
-        budget: budget,
-        onSave: (amount) async {
-          await DatabaseService.instance.upsertBudget(
-              budget.category, _month.year, _month.month, amount);
-          if (mounted) setState(() => budget.budget = amount);
-        },
-      ),
-    );
-  }
 
   /// Opens the "add budget" sheet.
   /// [preselected] pre-picks a category (used from the unbudgeted rows).
@@ -792,13 +770,9 @@ class _HealthChip extends StatelessWidget {
 // ═════════════════════════════════════════════════════════════════════════════
 
 class _BudgetCategoryCard extends StatelessWidget {
-  const _BudgetCategoryCard({
-    required this.budget,
-    required this.onEdit,
-  });
+  const _BudgetCategoryCard({required this.budget});
 
   final _CategoryBudget budget;
-  final VoidCallback onEdit;
 
   @override
   Widget build(BuildContext context) {
@@ -854,21 +828,6 @@ class _BudgetCategoryCard extends StatelessWidget {
                     const SizedBox(height: 2),
                     _StatusBadge(budget: budget),
                   ],
-                ),
-              ),
-              GestureDetector(
-                onTap: onEdit,
-                child: Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    color: AppConstants.primaryGreen.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Icon(
-                    Icons.edit_outlined,
-                    size: 16,
-                    color: AppConstants.primaryGreen,
-                  ),
                 ),
               ),
             ],
@@ -1053,137 +1012,6 @@ class _UnbudgetedCard extends StatelessWidget {
                 style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
           ),
         ],
-      ),
-    );
-  }
-}
-
-// ═════════════════════════════════════════════════════════════════════════════
-// EDIT BUDGET BOTTOM SHEET  (for existing budgets — amount only)
-// ═════════════════════════════════════════════════════════════════════════════
-
-class _BudgetEditSheet extends StatefulWidget {
-  const _BudgetEditSheet({required this.budget, required this.onSave});
-  final _CategoryBudget budget;
-  final Future<void> Function(double amount) onSave;
-
-  @override
-  State<_BudgetEditSheet> createState() => _BudgetEditSheetState();
-}
-
-class _BudgetEditSheetState extends State<_BudgetEditSheet> {
-  late TextEditingController _ctrl;
-  String? _error;
-
-  @override
-  void initState() {
-    super.initState();
-    _ctrl = TextEditingController(
-      text: widget.budget.budget > 0
-          ? widget.budget.budget.toStringAsFixed(0)
-          : '',
-    );
-  }
-
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
-
-  Future<void> _save() async {
-    final value = double.tryParse(_ctrl.text.trim());
-    if (value == null || value <= 0) {
-      setState(() => _error = 'Enter a valid amount greater than 0.');
-      return;
-    }
-    await widget.onSave(value);
-    if (mounted) Navigator.pop(context);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding:
-          EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-      child: Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(
-              top: Radius.circular(AppConstants.borderRadiusLarge)),
-        ),
-        padding: const EdgeInsets.fromLTRB(AppConstants.paddingLarge, 0,
-            AppConstants.paddingLarge, AppConstants.paddingLarge),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Handle
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                margin: const EdgeInsets.symmetric(vertical: 12),
-                decoration: BoxDecoration(
-                  color: AppConstants.textLightGray,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-            // Header
-            Row(
-              children: [
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: widget.budget.iconColor.withValues(alpha: 0.1),
-                    borderRadius:
-                        BorderRadius.circular(AppConstants.borderRadiusMedium),
-                  ),
-                  child: Icon(widget.budget.icon,
-                      size: 20, color: widget.budget.iconColor),
-                ),
-                const SizedBox(width: 12),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('Edit Budget',
-                        style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w700,
-                            color: AppConstants.textDark)),
-                    Text(widget.budget.category,
-                        style: const TextStyle(
-                            fontSize: 13,
-                            color: AppConstants.textMediumGray)),
-                  ],
-                ),
-              ],
-            ),
-            const SizedBox(height: AppConstants.paddingLarge),
-            // Amount field
-            _AmountField(controller: _ctrl, error: _error,
-                onChanged: () => setState(() => _error = null)),
-            if (widget.budget.spent > 0) ...[
-              const SizedBox(height: 10),
-              Row(
-                children: [
-                  const Icon(Icons.info_outline,
-                      size: 14, color: AppConstants.textLightGray),
-                  const SizedBox(width: 6),
-                  Text(
-                    'Already spent \$${widget.budget.spent.toStringAsFixed(2)} this month.',
-                    style: const TextStyle(
-                        fontSize: 12, color: AppConstants.textMediumGray),
-                  ),
-                ],
-              ),
-            ],
-            const SizedBox(height: AppConstants.paddingLarge),
-            _SaveButton(onPressed: _save),
-          ],
-        ),
       ),
     );
   }

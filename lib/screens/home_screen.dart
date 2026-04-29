@@ -20,6 +20,7 @@ import 'package:intl/intl.dart' show DateFormat;
 import '../models/expense.dart';
 import '../services/currency_service.dart';
 import '../services/database_service.dart';
+import '../services/notification_service.dart';
 import '../utils/constants.dart';
 import '../widgets/spending_summary_card.dart';
 import '../widgets/quick_stat_card.dart';
@@ -42,6 +43,7 @@ class _HomeScreenState extends State<HomeScreen> {
   // ─── State ──────────────────────────────────────────────────────────────────
   String _userName = 'User';
   bool _isLoading = true;
+  bool _firstLoad = true;
 
   List<Expense> _recentExpenses = [];
   double _monthlyTotal = 0;
@@ -92,8 +94,6 @@ class _HomeScreenState extends State<HomeScreen> {
       if (!mounted) return;
 
       final budgets = results[6] as Map<String, double>;
-      final totalBudget =
-          budgets.values.fold(0.0, (sum, v) => sum + v);
 
       setState(() {
         _userName = name;
@@ -103,9 +103,15 @@ class _HomeScreenState extends State<HomeScreen> {
         _categoryCount = results[3] as int;
         _avgPerDay = results[4] as double;
         _highestAmount = results[5] as double;
-        _totalBudget = totalBudget;
+        _totalBudget = budgets.values.fold(0.0, (sum, v) => sum + v);
         _isLoading = false;
       });
+
+      // Send push notifications on first load only (not on pull-to-refresh)
+      if (_firstLoad) {
+        _firstLoad = false;
+        NotificationService.instance.checkAndNotify();
+      }
     } catch (e) {
       debugPrint('HomeScreen: Error loading data — $e');
       if (!mounted) return;
@@ -220,55 +226,25 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // ─── Sub-builders ─────────────────────────────────────────────────────────
 
-  /// Greeting row: "Good Morning, 👋" + user name + bell icon.
+  /// Greeting row: greeting emoji + user name.
   Widget _buildGreetingHeader() {
-    return Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                '$_greeting 👋',
-                style: const TextStyle(
-                  fontSize: 14,
-                  color: AppConstants.textMediumGray,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                _userName,
-                style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w800,
-                  color: AppConstants.textDark,
-                ),
-              ),
-            ],
+        Text(
+          '$_greeting 👋',
+          style: const TextStyle(
+            fontSize: 14,
+            color: AppConstants.textMediumGray,
           ),
         ),
-        // Notification bell button
-        Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius:
-                BorderRadius.circular(AppConstants.borderRadiusMedium),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.06),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: IconButton(
-            icon: const Icon(
-              Icons.notifications_outlined,
-              color: AppConstants.textDark,
-            ),
-            onPressed: () {
-              // TODO: Open notifications
-            },
+        const SizedBox(height: 2),
+        Text(
+          _userName,
+          style: const TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.w800,
+            color: AppConstants.textDark,
           ),
         ),
       ],
@@ -469,3 +445,4 @@ class _HomeScreenState extends State<HomeScreen> {
     return DateFormat('MMM d').format(date);
   }
 }
+

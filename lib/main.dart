@@ -23,6 +23,7 @@ import 'screens/reset_password_screen.dart';
 import 'services/currency_service.dart';
 import 'services/gemini_service.dart';
 import 'services/lm_studio_service.dart';
+import 'services/notification_service.dart';
 import 'utils/constants.dart';
 
 Future<void> main() async {
@@ -33,7 +34,9 @@ Future<void> main() async {
     CurrencyService.instance.load(),
     GeminiService.instance.load(),
     LMStudioService.instance.load(),
+    NotificationService.instance.init(),
   ]);
+  await NotificationService.instance.requestPermission();
 
   // Lock orientation to portrait for consistent receipt-capture UX.
   SystemChrome.setPreferredOrientations([

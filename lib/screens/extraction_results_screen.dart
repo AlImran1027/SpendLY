@@ -104,10 +104,10 @@ class _ExtractionResultsScreenState extends State<ExtractionResultsScreen>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final args = ModalRoute.of(context)?.settings.arguments;
-    if (args is String && _data == null) {
-      _imagePath = args;
-      _runExtraction();
+    final args = ModalRoute.of(context)?.settings.arguments; // Expecting the image file path as a String argument.
+    if (args is String && _data == null) {   
+      _imagePath = args; // Store the image file path.
+      _runExtraction(); // Start extraction when the screen is first shown with a valid image path. // calls gemeni
     } else if (_data == null) {
       _imagePath = '';
       _runExtraction();
@@ -126,8 +126,29 @@ class _ExtractionResultsScreenState extends State<ExtractionResultsScreen>
 
   // ─── Extraction ────────────────────────────────────────────────────────────
 
-  /// Picks the active backend (LM Studio preferred; falls back to Gemini)
-  /// and runs extraction. Prompts for setup if neither is configured.
+  /// Tries Gemini first; falls back to LM Studio on connection/API failure.
+  /// Throws if both fail or neither is configured.
+  Future<ExtractedReceiptData> _extractWithFallback() async {
+    if (GeminiService.instance.hasApiKey) {
+      try {
+        return await GeminiService.instance.extractFromImage(_imagePath);
+      } on GeminiParseException {
+        rethrow;
+      } catch (_) {
+        if (LMStudioService.instance.isConfigured) {
+          if (mounted) _showError('Gemini failed — falling back to LM Studio.');
+          return await LMStudioService.instance.extractFromImage(_imagePath);
+        }
+        rethrow;
+      }
+    } else if (LMStudioService.instance.isConfigured) {
+      return await LMStudioService.instance.extractFromImage(_imagePath);
+    } else {
+      throw const GeminiApiKeyMissingException();
+    }
+  }
+
+  /// Runs extraction after ensuring at least one backend is configured.
   Future<void> _runExtraction() async {
     final useLMStudio = LMStudioService.instance.isConfigured;
     final useGemini = GeminiService.instance.hasApiKey;
@@ -144,12 +165,7 @@ class _ExtractionResultsScreenState extends State<ExtractionResultsScreen>
     });
 
     try {
-      final ExtractedReceiptData data;
-      if (LMStudioService.instance.isConfigured) {
-        data = await LMStudioService.instance.extractFromImage(_imagePath);
-      } else {
-        data = await GeminiService.instance.extractFromImage(_imagePath);
-      }
+      final data = await _extractWithFallback();
       if (!mounted) return;
       setState(() {
         _data = data;
@@ -164,7 +180,7 @@ class _ExtractionResultsScreenState extends State<ExtractionResultsScreen>
     } on GeminiApiKeyMissingException {
       if (!mounted) return;
       setState(() { _isExtracting = false; _extractionFailed = true; });
-      _showError('Gemini API key not configured. Tap ⟳ to set it up.');
+      _showError('No AI backend configured. Tap ⟳ to set one up.');
     } catch (e) {
       if (!mounted) return;
       setState(() { _isExtracting = false; _extractionFailed = true; });
@@ -455,11 +471,17 @@ class _ExtractionResultsScreenState extends State<ExtractionResultsScreen>
     if (data == null) return;
 
     final now = DateTime.now();
+    final firstDate = DateTime(2000);
     final initial = data.date ?? now;
+    final clampedInitial = initial.isBefore(firstDate)
+        ? firstDate
+        : initial.isAfter(now)
+            ? now
+            : initial;
     final picked = await showDatePicker(
       context: context,
-      initialDate: initial.isAfter(now) ? now : initial,
-      firstDate: DateTime(2020),
+      initialDate: clampedInitial,
+      firstDate: firstDate,
       lastDate: now,
       builder: (context, child) {
         return Theme(
@@ -513,10 +535,10 @@ class _ExtractionResultsScreenState extends State<ExtractionResultsScreen>
         d.totalAmount > 0;
   }
 
-  Future<void> _saveExpense() async {
+  Future<void> _saveExpense() async { //
     if (!_canSave || _isSaving) return;
-    final data = _data!;
-    setState(() => _isSaving = true);
+    final data = _data!; 
+    setState(() => _isSaving = true); //
 
     try {
       // Compute average AI confidence across all extracted fields.
@@ -532,11 +554,11 @@ class _ExtractionResultsScreenState extends State<ExtractionResultsScreen>
           ? null
           : confidences.reduce((a, b) => a + b) / confidences.length;
 
-      final expense = Expense.fromExtractedReceiptData(
+      final expense = Expense.fromExtractedReceiptData( // Convert the extracted data into an Expense model for saving.
         data,
         aiConfidence: avgConfidence,
       );
-      await DatabaseService.instance.insertExpense(expense);
+      await DatabaseService.instance.insertExpense(expense); // Save the expense to the database.
 
       if (!mounted) return;
       Navigator.popUntil(context, (route) => route.isFirst);
@@ -573,6 +595,7 @@ class _ExtractionResultsScreenState extends State<ExtractionResultsScreen>
   // ─── Back-press guard ───────────────────────────────────────────────────────
 
   Future<bool> _onWillPop() async {
+    if (_isExtracting) return false;
     if (_data == null) return true;
     final result = await showDialog<bool>(
       context: context,
@@ -641,10 +664,12 @@ class _ExtractionResultsScreenState extends State<ExtractionResultsScreen>
       ),
       leading: IconButton(
         icon: const Icon(Icons.arrow_back),
-        onPressed: () async {
-          final shouldPop = await _onWillPop();
-          if (shouldPop && mounted) Navigator.of(context).pop();
-        },
+        onPressed: _isExtracting
+            ? null
+            : () async {
+                final shouldPop = await _onWillPop();
+                if (shouldPop && mounted) Navigator.of(context).pop();
+              },
       ),
       actions: [
         if (_extractionFailed || (_data?.status == ExtractionStatus.failed))
