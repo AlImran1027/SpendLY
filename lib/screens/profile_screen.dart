@@ -1195,8 +1195,6 @@ class _ProfileScreenState extends State<ProfileScreen>
       ),
     );
 
-    urlCtrl.dispose();
-    modelCtrl.dispose();
     if (!mounted) return;
     setState(() {});
 

@@ -60,6 +60,9 @@ class _ExtractionResultsScreenState extends State<ExtractionResultsScreen>
   /// Controller for the extraction-failed retry.
   bool _extractionFailed = false;
 
+  /// The last error message for display in the failed state.
+  String? _lastError;
+
   // ─── Text Editing Controllers (for inline edits) ────────────────────────────
 
   final _merchantController = TextEditingController();
@@ -183,7 +186,11 @@ class _ExtractionResultsScreenState extends State<ExtractionResultsScreen>
       _showError('No AI backend configured. Tap ⟳ to set one up.');
     } catch (e) {
       if (!mounted) return;
-      setState(() { _isExtracting = false; _extractionFailed = true; });
+      setState(() {
+        _isExtracting = false;
+        _extractionFailed = true;
+        _lastError = _friendlyError(e);
+      });
       _showError('Extraction failed: ${_friendlyError(e)}');
     }
   }
@@ -808,10 +815,10 @@ class _ExtractionResultsScreenState extends State<ExtractionResultsScreen>
               ),
             ),
             const SizedBox(height: AppConstants.paddingSmall),
-            const Text(
-              'Could not extract receipt data.\nCheck your API key and internet connection, then try again.',
+            Text(
+              _lastError ?? 'Could not extract receipt data.\nCheck your AI backend settings and try again.',
               textAlign: TextAlign.center,
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 14,
                 color: AppConstants.textMediumGray,
                 height: 1.5,

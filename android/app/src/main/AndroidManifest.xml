@@ -1,4 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Required for HTTP calls to LM Studio and general network access -->
+    <uses-permission android:name="android.permission.INTERNET"/>
     <!-- Required for posting notifications on Android 13+ -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <application

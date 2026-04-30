@@ -16,6 +16,7 @@ library;
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -151,26 +152,43 @@ class LMStudioService {
         },
       ],
       'temperature': 0.1,
-      'max_tokens': 2048,
+      'max_tokens': 4096,
       'stream': false,
     });
 
-    final uri = Uri.parse('$serverUrl/v1/chat/completions'); // Construct the full URI for the chat completions endpoint.
+    final uri = Uri.parse('$serverUrl/v1/chat/completions');
     final response = await http
         .post(
           uri,
-          headers: {'Content-Type': 'application/json'}, // Set the content type to JSON for the request.
-          body: requestBody, // Send the image as a base64 data URL along with the prompt in the messages array.
+          headers: {
+            'Content-Type': 'application/json; charset=utf-8',
+            'Accept': 'application/json',
+            // Prevent gzip/deflate — some Android versions don't auto-decompress,
+            // which produces a garbled body that fails jsonDecode.
+            'Accept-Encoding': 'identity',
+          },
+          body: requestBody,
         )
         .timeout(const Duration(seconds: 120));
 
     if (response.statusCode != 200) {
       throw Exception(
-          'LM Studio returned ${response.statusCode}: ${response.body}');
+          'LM Studio returned HTTP ${response.statusCode}');
     }
 
-    final responseJson =
-        jsonDecode(response.body) as Map<String, dynamic>;
+    // Decode the body explicitly as UTF-8.  The http package falls back to
+    // Latin-1 on Android when the server omits charset from Content-Type,
+    // which corrupts multi-byte characters and breaks jsonDecode.
+    final body = utf8.decode(response.bodyBytes, allowMalformed: true);
+    debugPrint('[LMStudio] response body length=${body.length}');
+
+    Map<String, dynamic> responseJson;
+    try {
+      responseJson = jsonDecode(body) as Map<String, dynamic>;
+    } catch (e) {
+      throw LMStudioParseException('Failed to decode server response: $e');
+    }
+
     final choices = responseJson['choices'] as List<dynamic>?;
     if (choices == null || choices.isEmpty) {
       throw const LMStudioParseException('No choices in response');
@@ -185,8 +203,22 @@ class LMStudioService {
 
     try {
       final jsonStr = _extractJsonString(raw);
-      final json = jsonDecode(jsonStr) as Map<String, dynamic>;
+      Map<String, dynamic> json;
+      try {
+        json = jsonDecode(jsonStr) as Map<String, dynamic>;
+      } on FormatException {
+        // Response was truncated (finish_reason: length). Attempt structural repair
+        // by closing any unclosed brackets/braces before giving up.
+        final repaired = _repairJson(jsonStr);
+        if (repaired == null) {
+          throw const LMStudioParseException(
+              'Response was cut off — try a model with a larger context window.');
+        }
+        json = jsonDecode(repaired) as Map<String, dynamic>;
+      }
       return ExtractedReceiptData.fromJson(json, imagePath: imagePath);
+    } on LMStudioParseException {
+      rethrow;
     } on FormatException catch (e) {
       throw LMStudioParseException('Invalid JSON in response: ${e.message}');
     }
@@ -219,9 +251,47 @@ class LMStudioService {
         .replaceFirst(RegExp(r'\n?```\s*$'), '')
         .trim();
     final start = t.indexOf('{');
+    // Use the last `}` only if the text looks complete; otherwise use the full
+    // remaining string so _repairJson can close the open brackets.
+    if (start == -1) return t;
     final end = t.lastIndexOf('}');
-    if (start != -1 && end > start) return t.substring(start, end + 1);
-    return t;
+    if (end > start) return t.substring(start, end + 1);
+    // No closing brace — return from `{` to end so repair can fix it.
+    return t.substring(start);
+  }
+
+  /// Attempts to close unclosed `{` / `[` in a truncated JSON string.
+  /// Returns the repaired string, or null if no repair was needed / possible.
+  static String? _repairJson(String text) {
+    // Strip a trailing comma that may precede the truncation point.
+    final s = text.trimRight().replaceAll(RegExp(r',\s*$'), '');
+
+    final stack = <String>[];
+    bool inString = false;
+    bool escape = false;
+
+    for (int i = 0; i < s.length; i++) {
+      final c = s[i];
+      if (escape) { escape = false; continue; }
+      if (c == '\\' && inString) { escape = true; continue; }
+      if (c == '"') { inString = !inString; continue; }
+      if (inString) continue;
+      if (c == '{') {
+        stack.add('}');
+      } else if (c == '[') {
+        stack.add(']');
+      } else if (c == '}' || c == ']') {
+        if (stack.isNotEmpty && stack.last == c) stack.removeLast();
+      }
+    }
+
+    if (stack.isEmpty) return null; // Already balanced — no repair needed.
+
+    final sb = StringBuffer(s);
+    while (stack.isNotEmpty) {
+      sb.write(stack.removeLast());
+    }
+    return sb.toString();
   }
 
   // ─── Prompt ────────────────────────────────────────────────────────────────
