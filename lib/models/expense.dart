@@ -1,52 +1,35 @@
-/// Expense and ExpenseItem models — the canonical persisted data structures.
-///
-/// These map 1-to-1 with the SQLite tables and are the source of truth for
-/// all screens. Helper methods convert to/from [ExtractedReceiptData] so the
-/// existing AI-extraction screens continue to work unchanged.
-library;
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 import 'extracted_receipt_data.dart';
 
 // ─── ExpenseItem ──────────────────────────────────────────────────────────────
 
 class ExpenseItem {
-  final int? id;
-  final int? expenseId;
   final String name;
   final double quantity;
   final double unitPrice;
   final double subtotal;
 
   const ExpenseItem({
-    this.id,
-    this.expenseId,
     required this.name,
     this.quantity = 1.0,
     required this.unitPrice,
     required this.subtotal,
   });
 
-  // ── SQLite ──────────────────────────────────────────────────────────────────
-
-  Map<String, dynamic> toMap({int? expenseId}) => {
-        if (id != null) 'id': id,
-        'expense_id': expenseId ?? this.expenseId,
+  Map<String, dynamic> toFirestoreMap() => {
         'name': name,
         'quantity': quantity,
-        'unit_price': unitPrice,
+        'unitPrice': unitPrice,
         'subtotal': subtotal,
       };
 
-  factory ExpenseItem.fromMap(Map<String, dynamic> m) => ExpenseItem(
-        id: m['id'] as int?,
-        expenseId: m['expense_id'] as int?,
+  factory ExpenseItem.fromFirestoreMap(Map<String, dynamic> m) => ExpenseItem(
         name: m['name'] as String,
         quantity: (m['quantity'] as num).toDouble(),
-        unitPrice: (m['unit_price'] as num).toDouble(),
+        unitPrice: (m['unitPrice'] as num).toDouble(),
         subtotal: (m['subtotal'] as num).toDouble(),
       );
-
-  // ── Cross-model helpers ──────────────────────────────────────────────────────
 
   ExtractedItem toExtractedItem() => ExtractedItem(
         name: name,
@@ -66,7 +49,7 @@ class ExpenseItem {
 // ─── Expense ──────────────────────────────────────────────────────────────────
 
 class Expense {
-  final int? id;
+  final String? id;
   final String merchantName;
   final String category;
   final double totalAmount;
@@ -94,47 +77,48 @@ class Expense {
     this.items = const [],
   });
 
-  // ── SQLite ──────────────────────────────────────────────────────────────────
+  // ── Firestore ───────────────────────────────────────────────────────────────
 
-  /// Converts to a map for the `expenses` table (items excluded — stored
-  /// separately in `expense_items`).
-  Map<String, dynamic> toMap() => {
-        if (id != null) 'id': id,
-        'merchant_name': merchantName,
+  Map<String, dynamic> toFirestore() => {
+        'merchantName': merchantName,
         'category': category,
-        'total_amount': totalAmount,
-        'date': date.toIso8601String(),
-        'payment_method': paymentMethod,
+        'totalAmount': totalAmount,
+        'date': Timestamp.fromDate(date),
+        'paymentMethod': paymentMethod,
         'notes': notes,
-        'image_path': imagePath,
-        'ai_confidence': aiConfidence,
-        'created_at': createdAt.toIso8601String(),
-        'modified_at': modifiedAt.toIso8601String(),
+        'imagePath': imagePath,
+        if (aiConfidence != null) 'aiConfidence': aiConfidence,
+        'createdAt': Timestamp.fromDate(createdAt),
+        'modifiedAt': Timestamp.fromDate(modifiedAt),
+        'items': items.map((i) => i.toFirestoreMap()).toList(),
       };
 
-  factory Expense.fromMap(Map<String, dynamic> m,
-      {List<ExpenseItem> items = const []}) {
+  factory Expense.fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) {
+    final m = doc.data()!;
     return Expense(
-      id: m['id'] as int?,
-      merchantName: m['merchant_name'] as String,
-      category: m['category'] as String,
-      totalAmount: (m['total_amount'] as num).toDouble(),
-      date: DateTime.parse(m['date'] as String),
-      paymentMethod: m['payment_method'] as String? ?? 'Cash',
+      id: doc.id,
+      merchantName: m['merchantName'] as String? ?? '',
+      category: m['category'] as String? ?? '',
+      totalAmount: (m['totalAmount'] as num?)?.toDouble() ?? 0.0,
+      date: (m['date'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      paymentMethod: m['paymentMethod'] as String? ?? 'Cash',
       notes: m['notes'] as String? ?? '',
-      imagePath: m['image_path'] as String? ?? '',
-      aiConfidence: m['ai_confidence'] != null
-          ? (m['ai_confidence'] as num).toDouble()
+      imagePath: m['imagePath'] as String? ?? '',
+      aiConfidence: m['aiConfidence'] != null
+          ? (m['aiConfidence'] as num).toDouble()
           : null,
-      createdAt: DateTime.parse(m['created_at'] as String),
-      modifiedAt: DateTime.parse(m['modified_at'] as String),
-      items: items,
+      createdAt:
+          (m['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      modifiedAt:
+          (m['modifiedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      items: (m['items'] as List<dynamic>? ?? [])
+          .map((i) => ExpenseItem.fromFirestoreMap(i as Map<String, dynamic>))
+          .toList(),
     );
   }
 
   // ── Cross-model helpers ──────────────────────────────────────────────────────
 
-  /// Converts to [ExtractedReceiptData] for screens that still use that type.
   ExtractedReceiptData toExtractedReceiptData() => ExtractedReceiptData(
         merchantName: merchantName,
         date: date,
@@ -166,9 +150,8 @@ class Expense {
     );
   }
 
-  /// Returns a copy with the given fields replaced.
   Expense copyWith({
-    int? id,
+    String? id,
     String? merchantName,
     String? category,
     double? totalAmount,

@@ -21,9 +21,11 @@
 ///   - "Forgot Password?" shows a bottom-sheet placeholder (TODO).
 library;
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../services/auth_service.dart';
 import '../utils/constants.dart';
 import '../widgets/custom_text_field.dart';
 import '../widgets/primary_button.dart';
@@ -134,46 +136,36 @@ class _LoginScreenState extends State<LoginScreen>
     setState(() => _isLoading = true);
 
     try {
-      // ── Simulate network delay (replace with real auth later) ──
-      await Future.delayed(const Duration(seconds: 2));
-
-      // TODO: Replace with actual authentication API call
-      // final response = await AuthService.login(
-      //   email: _emailController.text.trim(),
-      //   password: _passwordController.text,
-      // );
-
-      // ── Simulated credential check ──
-      // For now, accept any valid-format email/password combo.
-      // In production this would hit the FastAPI backend.
       final email = _emailController.text.trim();
-      final password = _passwordController.text;
+      final credential = await AuthService.instance.signIn(
+        email,
+        _passwordController.text,
+      );
 
-      // Example: reject a specific combo to demo error state
-      if (email == 'test@fail.com' && password == 'failme') {
-        throw Exception('Invalid email or password');
-      }
-
-      // ── Persist login state ──
+      // Sync name/email to SharedPreferences so profile screen can read them.
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool(AppConstants.prefIsLoggedIn, true);
-      // Only initialise name/email on the very first login — never overwrite
-      // profile edits the user may have made in a previous session.
+      final user = credential.user!;
       if (prefs.getString(AppConstants.prefUserEmail) == null) {
-        await prefs.setString(AppConstants.prefUserEmail, email);
+        await prefs.setString(AppConstants.prefUserEmail, user.email ?? email);
       }
       if (prefs.getString(AppConstants.prefUserName) == null) {
-        await prefs.setString(AppConstants.prefUserName, email.split('@').first);
+        final name = user.displayName ?? email.split('@').first;
+        await prefs.setString(AppConstants.prefUserName, name);
       }
 
       if (!mounted) return;
-
-      // ── Navigate to Home, replacing login route ──
       Navigator.pushReplacementNamed(context, AppConstants.homeRoute);
+    } on FirebaseAuthException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _errorMessage = AuthService.instance.getErrorMessage(e);
+        _isLoading = false;
+      });
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _errorMessage = e.toString().replaceFirst('Exception: ', '');
+        _errorMessage = 'Something went wrong. Please try again.';
         _isLoading = false;
       });
     }

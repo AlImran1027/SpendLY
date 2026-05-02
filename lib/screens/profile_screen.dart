@@ -25,6 +25,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../services/auth_service.dart';
 import '../services/currency_service.dart';
 import '../services/database_service.dart';
 import '../services/gemini_service.dart';
@@ -1185,7 +1186,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                 Navigator.pop(ctx);
                 // Fire-and-forget: in-memory state updates synchronously inside
                 // each setter, so the profile rebuild already sees the new values.
-                LMStudioService.instance.setServerUrl(url);
+                LMStudioService.instance.setServerUrl(url); //save url for lmstudio
                 LMStudioService.instance.setModelName(model);
               },
               child: const Text('Save'),
@@ -1327,11 +1328,7 @@ class _ProfileScreenState extends State<ProfileScreen>
   }
 
   Future<void> _performLogout() async {
-    final prefs = await SharedPreferences.getInstance();
-    // Only clear the session flag — preserve profile data (name, email) so
-    // they survive logout/login cycles.
-    await prefs.remove(AppConstants.prefIsLoggedIn);
-    await prefs.remove(AppConstants.prefUserId);
+    await AuthService.instance.signOut();
 
     if (!mounted) return;
 

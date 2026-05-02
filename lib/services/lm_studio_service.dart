@@ -72,12 +72,12 @@ class LMStudioService {
   /// Persist new server URL. Pass an empty string to clear.
   Future<void> setServerUrl(String url) async {
     final trimmed = url.trim().replaceAll(RegExp(r'/+$'), ''); // strip trailing /
-    _serverUrl = trimmed.isEmpty ? null : trimmed;
+    _serverUrl = trimmed.isEmpty ? null : trimmed; //
     final prefs = await SharedPreferences.getInstance();
-    if (_serverUrl == null) {
+    if (_serverUrl == null) { // Remove from prefs if cleared
       await prefs.remove(prefServerUrl);
     } else {
-      await prefs.setString(prefServerUrl, _serverUrl!);
+      await prefs.setString(prefServerUrl, _serverUrl!); // Save new URL to prefs
     }
   }
 

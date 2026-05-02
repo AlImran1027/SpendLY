@@ -35,8 +35,7 @@ import '../utils/constants.dart';
 /// In production, [expenseId] would be used to query SQLite.
 /// For now, [receiptData] carries all the information needed.
 class ExpenseDetailArgs {
-  /// Database ID of the expense (for future SQLite integration).
-  final int? expenseId;
+  final String? expenseId;
 
   /// Full receipt / expense data to display.
   final ExtractedReceiptData? receiptData;
@@ -83,7 +82,7 @@ class _ExpenseDetailScreenState extends State<ExpenseDetailScreen>
   DateTime? _createdAt;
   DateTime? _modifiedAt;
   double? _aiConfidence;
-  int? _expenseId;
+  String? _expenseId;
   bool _isLoading = true;
   bool _argsRead = false;
 

@@ -117,9 +117,12 @@ app.*.map.json
 key.properties
 **/claude.md
 
-# Firebase config (add when Firebase is integrated)
+# Firebase — generated files contain real API keys; regenerate with FlutterFire CLI
+# Run: flutterfire configure
 google-services.json
 GoogleService-Info.plist
+lib/firebase_options.dart
+firebase.json
 
 # ─── Generated Dart files ─────────────────────────────────────────────────────
 *.g.dart
