@@ -22,9 +22,10 @@
 /// and the app navigates to /home with pushReplacementNamed.
 library;
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
+import '../services/auth_service.dart';
 import '../utils/constants.dart';
 import '../widgets/custom_text_field.dart';
 import '../widgets/primary_button.dart';
@@ -222,50 +223,36 @@ class _RegisterScreenState extends State<RegisterScreen>
     setState(() => _isLoading = true);
 
     try {
-      // ── Simulate network delay (replace with real registration later) ──
-      await Future.delayed(const Duration(seconds: 2));
-
-      // TODO: Replace with actual registration API call
-      // final response = await AuthService.register(
-      //   name: _nameController.text.trim(),
-      //   email: _emailController.text.trim(),
-      //   password: _passwordController.text,
-      // );
-
-      final name = _nameController.text.trim();
-      final email = _emailController.text.trim();
-
-      // Example: reject a specific email to demo error state
-      if (email == 'taken@example.com') {
-        throw Exception('An account with this email already exists');
-      }
-
-      // ── Persist login state ──
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool(AppConstants.prefIsLoggedIn, true);
-      await prefs.setString(AppConstants.prefUserEmail, email);
-      await prefs.setString(AppConstants.prefUserName, name);
+      await AuthService.instance.register(
+        _nameController.text.trim(),
+        _emailController.text.trim(),
+        _passwordController.text,
+      );
 
       if (!mounted) return;
 
-      // ── Show success snackbar and navigate ──
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Text('Account created successfully!'),
           backgroundColor: AppConstants.primaryGreen,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
-            borderRadius:
-                BorderRadius.circular(AppConstants.borderRadiusSmall),
+            borderRadius: BorderRadius.circular(AppConstants.borderRadiusSmall),
           ),
         ),
       );
 
       Navigator.pushReplacementNamed(context, AppConstants.homeRoute);
+    } on FirebaseAuthException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _errorMessage = AuthService.instance.getErrorMessage(e);
+        _isLoading = false;
+      });
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _errorMessage = e.toString().replaceFirst('Exception: ', '');
+        _errorMessage = 'Something went wrong. Please try again.';
         _isLoading = false;
       });
     }

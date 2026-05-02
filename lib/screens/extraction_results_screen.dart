@@ -144,7 +144,7 @@ class _ExtractionResultsScreenState extends State<ExtractionResultsScreen>
         }
         rethrow;
       }
-    } else if (LMStudioService.instance.isConfigured) {
+    } else if (LMStudioService.instance.isConfigured) { // If Gemini isn't configured but LM Studio is, try LM Studio directly.
       return await LMStudioService.instance.extractFromImage(_imagePath);
     } else {
       throw const GeminiApiKeyMissingException();

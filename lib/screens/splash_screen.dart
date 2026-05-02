@@ -9,7 +9,7 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import '../services/auth_service.dart';
 import '../utils/constants.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -129,13 +129,9 @@ class _SplashScreenState extends State<SplashScreen>
     );
   }
 
-  /// Reads the `isLoggedIn` flag from SharedPreferences.
-  ///
-  /// Returns `false` on any error so the user is safely sent to Login.
   Future<bool> _checkLoginStatus() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      return prefs.getBool(AppConstants.prefIsLoggedIn) ?? false;
+      return AuthService.instance.isLoggedIn;
     } catch (e) {
       debugPrint('SplashScreen: Error reading login state — $e');
       return false;

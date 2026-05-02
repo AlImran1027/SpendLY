@@ -369,7 +369,7 @@ class _ReceiptCaptureScreenState extends State<ReceiptCaptureScreen>
 
           // Main capture button — large green circle
           GestureDetector(
-            onTap: _isCapturing ? null : () => _pickImage(ImageSource.camera),
+            onTap: _isCapturing ? null : () => _pickImage(ImageSource.camera), // disable while capturing
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
               width: 80,

@@ -4,8 +4,10 @@
 /// and launches the splash screen.
 library;
 
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'firebase_options.dart';
 
 import 'screens/splash_screen.dart';
 import 'screens/login_screen.dart';
@@ -28,6 +30,8 @@ import 'utils/constants.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   // Load persisted settings before the first frame.
   await Future.wait([

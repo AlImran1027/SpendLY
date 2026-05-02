@@ -43,7 +43,7 @@ import '../utils/constants.dart';
 class ExpenseEntryArgs {
   final ExtractedReceiptData? extractedData;
   final bool isEditMode;
-  final int? existingExpenseId;
+  final String? existingExpenseId;
 
   const ExpenseEntryArgs({
     this.extractedData,
@@ -133,7 +133,7 @@ class _ExpenseEntryScreenState extends State<ExpenseEntryScreen>
   bool _formDirty = false; // tracks unsaved changes
   bool _argsRead = false;
 
-  int? _existingExpenseId;
+  String? _existingExpenseId;
   ExtractedReceiptData? _extractedData;
 
   // ─── Autocomplete Suggestions ─────────────────────────────────────────────
