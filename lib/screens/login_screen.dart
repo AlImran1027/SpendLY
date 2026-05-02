@@ -142,17 +142,15 @@ class _LoginScreenState extends State<LoginScreen>
         _passwordController.text,
       );
 
-      // Sync name/email to SharedPreferences so profile screen can read them.
+      // Always sync Firebase Auth user data to SharedPreferences on login.
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool(AppConstants.prefIsLoggedIn, true);
       final user = credential.user!;
-      if (prefs.getString(AppConstants.prefUserEmail) == null) {
-        await prefs.setString(AppConstants.prefUserEmail, user.email ?? email);
-      }
-      if (prefs.getString(AppConstants.prefUserName) == null) {
-        final name = user.displayName ?? email.split('@').first;
-        await prefs.setString(AppConstants.prefUserName, name);
-      }
+      final name = user.displayName?.isNotEmpty == true
+          ? user.displayName!
+          : email.split('@').first;
+      await prefs.setBool(AppConstants.prefIsLoggedIn, true);
+      await prefs.setString(AppConstants.prefUserEmail, user.email ?? email);
+      await prefs.setString(AppConstants.prefUserName, name);
 
       if (!mounted) return;
       Navigator.pushReplacementNamed(context, AppConstants.homeRoute);

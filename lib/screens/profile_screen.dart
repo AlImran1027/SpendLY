@@ -22,6 +22,7 @@
 ///   - Staggered entrance animations for sections.
 library;
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -106,11 +107,16 @@ class _ProfileScreenState extends State<ProfileScreen>
     );
     final totalSpentAmt = monthTotals.fold(0.0, (s, v) => s + v);
 
+    final firebaseUser = AuthService.instance.currentUser;
     if (!mounted) return;
     setState(() {
-      _userName = prefs.getString(AppConstants.prefUserName) ?? 'User';
-      _userEmail =
-          prefs.getString(AppConstants.prefUserEmail) ?? 'user@example.com';
+      _userName = (firebaseUser?.displayName?.isNotEmpty == true
+              ? firebaseUser!.displayName!
+              : prefs.getString(AppConstants.prefUserName)) ??
+          'User';
+      _userEmail = firebaseUser?.email ??
+          prefs.getString(AppConstants.prefUserEmail) ??
+          'user@example.com';
       _notificationsEnabled = prefs.getBool(_prefNotifications) ?? true;
       _darkModeEnabled = prefs.getBool(_prefDarkMode) ?? false;
       _selectedCurrency = CurrencyService.instance.label;
@@ -432,21 +438,6 @@ class _ProfileScreenState extends State<ProfileScreen>
           showDivider: true,
         ),
         _SettingsRow(
-          icon: Icons.email_outlined,
-          iconColor: AppConstants.primaryGreen,
-          label: 'Email Address',
-          trailing: Text(
-            _userEmail,
-            style: const TextStyle(
-              fontSize: 12,
-              color: AppConstants.textLightGray,
-            ),
-            overflow: TextOverflow.ellipsis,
-          ),
-          onTap: _handleChangeEmail,
-          showDivider: true,
-        ),
-        _SettingsRow(
           icon: Icons.delete_outline,
           iconColor: AppConstants.errorRed,
           label: 'Delete Account',
@@ -721,7 +712,6 @@ class _ProfileScreenState extends State<ProfileScreen>
 
   Future<void> _handleEditProfile() async {
     final nameCtrl = TextEditingController(text: _userName);
-    final emailCtrl = TextEditingController(text: _userEmail);
     final formKey = GlobalKey<FormState>();
 
     final confirmed = await showDialog<bool>(
@@ -730,34 +720,15 @@ class _ProfileScreenState extends State<ProfileScreen>
         title: const Text('Edit Profile'),
         content: Form(
           key: formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextFormField(
-                controller: nameCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Full Name',
-                  prefixIcon: Icon(Icons.person_outline),
-                ),
-                validator: (v) =>
-                    (v == null || v.trim().isEmpty) ? 'Name is required' : null,
-                textCapitalization: TextCapitalization.words,
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: emailCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Email',
-                  prefixIcon: Icon(Icons.email_outlined),
-                ),
-                keyboardType: TextInputType.emailAddress,
-                validator: (v) {
-                  if (v == null || v.trim().isEmpty) return 'Email is required';
-                  if (!v.contains('@')) return 'Enter a valid email';
-                  return null;
-                },
-              ),
-            ],
+          child: TextFormField(
+            controller: nameCtrl,
+            decoration: const InputDecoration(
+              labelText: 'Full Name',
+              prefixIcon: Icon(Icons.person_outline),
+            ),
+            validator: (v) =>
+                (v == null || v.trim().isEmpty) ? 'Name is required' : null,
+            textCapitalization: TextCapitalization.words,
           ),
         ),
         actions: [
@@ -779,30 +750,15 @@ class _ProfileScreenState extends State<ProfileScreen>
     );
 
     if (confirmed != true) return;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(AppConstants.prefUserName, nameCtrl.text.trim());
-    await prefs.setString(AppConstants.prefUserEmail, emailCtrl.text.trim());
+    await AuthService.instance.updateDisplayName(nameCtrl.text.trim());
     if (!mounted) return;
-    setState(() {
-      _userName = nameCtrl.text.trim();
-      _userEmail = emailCtrl.text.trim();
-    });
+    setState(() => _userName = nameCtrl.text.trim());
   }
 
   // ── Account ────────────────────────────────────────────────────────────────
 
   void _handleChangePassword() {
     Navigator.pushNamed(context, AppConstants.changePasswordRoute);
-  }
-
-  void _handleChangeEmail() {
-    // TODO: Navigate to Change Email screen or show modal
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Email change coming soon!'),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
   }
 
   void _handleDeleteAccount() {
@@ -1411,7 +1367,9 @@ class _ProfileScreenState extends State<ProfileScreen>
   }
 
   void _showDeleteAccountStep2() {
-    final controller = TextEditingController();
+    final confirmCtrl = TextEditingController();
+    final passwordCtrl = TextEditingController();
+    bool obscurePassword = true;
 
     showDialog(
       context: context,
@@ -1420,7 +1378,8 @@ class _ProfileScreenState extends State<ProfileScreen>
         return StatefulBuilder(
           builder: (ctx, setDialogState) {
             final canDelete =
-                controller.text.trim().toUpperCase() == 'DELETE';
+                confirmCtrl.text.trim().toUpperCase() == 'DELETE' &&
+                    passwordCtrl.text.isNotEmpty;
 
             return AlertDialog(
               shape: RoundedRectangleBorder(
@@ -1439,7 +1398,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    'Please type DELETE to confirm account deletion.',
+                    'Type DELETE and enter your password to confirm.',
                     style: TextStyle(
                       fontSize: 14,
                       color: AppConstants.textMediumGray,
@@ -1448,32 +1407,60 @@ class _ProfileScreenState extends State<ProfileScreen>
                   ),
                   const SizedBox(height: 16),
                   TextField(
-                    controller: controller,
+                    controller: confirmCtrl,
                     autofocus: true,
                     textCapitalization: TextCapitalization.characters,
                     decoration: InputDecoration(
                       hintText: 'Type DELETE',
-                      hintStyle: const TextStyle(
-                        color: AppConstants.textLightGray,
-                      ),
+                      hintStyle:
+                          const TextStyle(color: AppConstants.textLightGray),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(
-                          AppConstants.borderRadiusSmall,
-                        ),
+                            AppConstants.borderRadiusSmall),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(
-                          AppConstants.borderRadiusSmall,
-                        ),
+                            AppConstants.borderRadiusSmall),
                         borderSide: const BorderSide(
-                          color: AppConstants.errorRed,
-                          width: 2,
-                        ),
+                            color: AppConstants.errorRed, width: 2),
                       ),
                       contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 14,
+                          horizontal: 12, vertical: 14),
+                    ),
+                    onChanged: (_) => setDialogState(() {}),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: passwordCtrl,
+                    obscureText: obscurePassword,
+                    decoration: InputDecoration(
+                      hintText: 'Current password',
+                      hintStyle:
+                          const TextStyle(color: AppConstants.textLightGray),
+                      prefixIcon: const Icon(Icons.lock_outline, size: 20),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          obscurePassword
+                              ? Icons.visibility_outlined
+                              : Icons.visibility_off_outlined,
+                          size: 20,
+                          color: AppConstants.textMediumGray,
+                        ),
+                        onPressed: () =>
+                            setDialogState(() => obscurePassword = !obscurePassword),
                       ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(
+                            AppConstants.borderRadiusSmall),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(
+                            AppConstants.borderRadiusSmall),
+                        borderSide: const BorderSide(
+                            color: AppConstants.errorRed, width: 2),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 14),
                     ),
                     onChanged: (_) => setDialogState(() {}),
                   ),
@@ -1482,10 +1469,8 @@ class _ProfileScreenState extends State<ProfileScreen>
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(ctx),
-                  child: const Text(
-                    'Cancel',
-                    style: TextStyle(color: AppConstants.textMediumGray),
-                  ),
+                  child: const Text('Cancel',
+                      style: TextStyle(color: AppConstants.textMediumGray)),
                 ),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
@@ -1496,14 +1481,14 @@ class _ProfileScreenState extends State<ProfileScreen>
                     disabledForegroundColor: Colors.white70,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(
-                        AppConstants.borderRadiusSmall,
-                      ),
+                          AppConstants.borderRadiusSmall),
                     ),
                   ),
                   onPressed: canDelete
                       ? () async {
+                          final password = passwordCtrl.text;
                           Navigator.pop(ctx);
-                          await _performDeleteAccount();
+                          await _performDeleteAccount(password);
                         }
                       : null,
                   child: const Text('Delete Account'),
@@ -1516,9 +1501,7 @@ class _ProfileScreenState extends State<ProfileScreen>
     );
   }
 
-  Future<void> _performDeleteAccount() async {
-    // TODO: Call backend to delete account + all data
-    // Simulate network call
+  Future<void> _performDeleteAccount(String password) async {
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -1530,29 +1513,46 @@ class _ProfileScreenState extends State<ProfileScreen>
       ),
     );
 
-    await Future.delayed(const Duration(seconds: 2));
+    try {
+      await AuthService.instance.deleteAccount(password);
 
-    if (!mounted) return;
-    Navigator.pop(context); // close loading
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.clear();
 
-    // Clear all user data
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.clear();
+      if (!mounted) return;
+      Navigator.pop(context); // close loading spinner
 
-    if (!mounted) return;
+      Navigator.pushNamedAndRemoveUntil(
+        context,
+        AppConstants.loginRoute,
+        (route) => false,
+      );
+    } on FirebaseAuthException catch (e) {
+      if (!mounted) return;
+      Navigator.pop(context); // close loading spinner
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Account deleted successfully'),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+      final msg = e.code == 'wrong-password' || e.code == 'invalid-credential'
+          ? 'Incorrect password. Account not deleted.'
+          : 'Failed to delete account (${e.code}). Please try again.';
 
-    Navigator.pushNamedAndRemoveUntil(
-      context,
-      AppConstants.loginRoute,
-      (route) => false,
-    );
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(msg),
+          backgroundColor: AppConstants.errorRed,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: $e'),
+          backgroundColor: AppConstants.errorRed,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 
   // ═════════════════════════════════════════════════════════════════════════

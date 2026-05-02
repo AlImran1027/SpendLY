@@ -25,8 +25,10 @@ library;
 
 import 'dart:async';
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
+import '../services/auth_service.dart';
 import '../utils/constants.dart';
 import '../widgets/custom_text_field.dart';
 
@@ -215,37 +217,34 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen>
     setState(() => _isLoading = true);
 
     try {
-      // ── Simulate network call (replace with real API later) ──
-      await Future.delayed(const Duration(seconds: 2));
-
-      final currentPw = _currentPwCtrl.text;
-
-      // Demo: reject a specific password to show "incorrect" error state.
-      if (currentPw == 'wrongpassword') {
-        throw _ChangePasswordException(
-          'Current password is incorrect. Please try again.',
-          _ErrorType.incorrectCurrent,
-        );
-      }
-
-      // Demo: simulate network error.
-      if (currentPw == 'networkerror') {
-        throw _ChangePasswordException(
-          'Connection error. Please check your internet and try again.',
-          _ErrorType.network,
-        );
-      }
+      await AuthService.instance.changePassword(
+        _currentPwCtrl.text,
+        _newPwCtrl.text,
+      );
 
       if (!mounted) return;
-
-      // ── Success ──
       setState(() => _isLoading = false);
       _showSuccessModal();
-    } on _ChangePasswordException catch (e) {
+    } on FirebaseAuthException catch (e) {
       if (!mounted) return;
+      String message;
+      _ErrorType errorType;
+      switch (e.code) {
+        case 'wrong-password':
+        case 'invalid-credential':
+          message = 'Current password is incorrect. Please try again.';
+          errorType = _ErrorType.incorrectCurrent;
+        case 'network-request-failed':
+          message =
+              'Connection error. Please check your internet and try again.';
+          errorType = _ErrorType.network;
+        default:
+          message = 'Failed to update password (${e.code}). Please try again.';
+          errorType = _ErrorType.general;
+      }
       setState(() {
-        _errorMessage = e.message;
-        _errorType = e.type;
+        _errorMessage = message;
+        _errorType = errorType;
         _isLoading = false;
       });
     } catch (e) {
@@ -922,12 +921,6 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen>
 // ═════════════════════════════════════════════════════════════════════════════
 
 enum _ErrorType { general, incorrectCurrent, samePassword, network }
-
-class _ChangePasswordException implements Exception {
-  final String message;
-  final _ErrorType type;
-  const _ChangePasswordException(this.message, this.type);
-}
 
 // ═════════════════════════════════════════════════════════════════════════════
 // SUCCESS MODAL

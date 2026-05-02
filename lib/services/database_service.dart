@@ -8,7 +8,11 @@ class DatabaseService {
   static final DatabaseService instance = DatabaseService._();
 
   FirebaseFirestore get _db => FirebaseFirestore.instance;
-  String get _uid => FirebaseAuth.instance.currentUser!.uid;
+  String get _uid {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) throw StateError('No authenticated user');
+    return user.uid;
+  }
 
   CollectionReference<Map<String, dynamic>> get _expenses =>
       _db.collection('users').doc(_uid).collection('expenses');

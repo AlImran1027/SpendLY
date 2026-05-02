@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../utils/constants.dart';
@@ -41,6 +42,60 @@ class AuthService {
     await _auth.sendPasswordResetEmail(email: email.trim());
   }
 
+  /// Updates the display name in Firebase Auth and SharedPreferences.
+  Future<void> updateDisplayName(String name) async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+    await user.updateDisplayName(name.trim());
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(AppConstants.prefUserName, name.trim());
+  }
+
+  /// Re-authenticates then updates the password in Firebase Auth.
+  Future<void> changePassword(
+      String currentPassword, String newPassword) async {
+    final user = _auth.currentUser;
+    if (user == null || user.email == null) {
+      throw FirebaseAuthException(
+          code: 'no-current-user', message: 'No authenticated user');
+    }
+    final credential = EmailAuthProvider.credential(
+      email: user.email!,
+      password: currentPassword,
+    );
+    await user.reauthenticateWithCredential(credential);
+    await user.updatePassword(newPassword);
+  }
+
+  /// Re-authenticates, deletes all Firestore data, then deletes the Auth user.
+  Future<void> deleteAccount(String password) async {
+    final user = _auth.currentUser;
+    if (user == null || user.email == null) {
+      throw FirebaseAuthException(
+          code: 'no-current-user', message: 'No authenticated user');
+    }
+    final credential = EmailAuthProvider.credential(
+      email: user.email!,
+      password: password,
+    );
+    await user.reauthenticateWithCredential(credential);
+
+    // Delete all Firestore data for this user.
+    final uid = user.uid;
+    final userRef = FirebaseFirestore.instance.collection('users').doc(uid);
+    final expenses = await userRef.collection('expenses').get();
+    for (final doc in expenses.docs) {
+      await doc.reference.delete();
+    }
+    final budgets = await userRef.collection('budgets').get();
+    for (final doc in budgets.docs) {
+      await doc.reference.delete();
+    }
+
+    // Delete the Firebase Auth account last.
+    await user.delete();
+  }
+
   /// Converts a FirebaseAuthException code to a user-friendly message.
   String getErrorMessage(FirebaseAuthException e) {
     switch (e.code) {
@@ -61,8 +116,14 @@ class AuthService {
         return 'Too many failed attempts. Please try again later';
       case 'network-request-failed':
         return 'Network error. Please check your internet connection';
+      case 'operation-not-allowed':
+        return 'Email/Password sign-in is not enabled in Firebase Console';
+      case 'app-not-authorized':
+        return 'App not authorized — check your Firebase configuration';
+      case 'CONFIGURATION_NOT_FOUND':
+        return 'Firebase project not configured correctly';
       default:
-        return 'Authentication failed. Please try again';
+        return 'Authentication failed (${e.code}). Please try again';
     }
   }
 }

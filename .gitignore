@@ -137,6 +137,9 @@ firebase.json
 # ─── Flutter environment export ───────────────────────────────────────────────
 flutter_export_environment.sh
 
+# ─── Flutter DevTools local settings ─────────────────────────────────────────
+devtools_options.yaml
+
 # ─── Local debug / screenshot assets ─────────────────────────────────────────
 error image/
 error images/

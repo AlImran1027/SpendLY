@@ -18,6 +18,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart' show DateFormat;
 
 import '../models/expense.dart';
+import '../services/auth_service.dart';
 import '../services/currency_service.dart';
 import '../services/database_service.dart';
 import '../services/notification_service.dart';
@@ -77,8 +78,12 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() => _isLoading = true);
 
     try {
+      final firebaseUser = AuthService.instance.currentUser;
       final prefs = await SharedPreferences.getInstance();
-      final name = prefs.getString(AppConstants.prefUserName) ?? 'User';
+      final name = (firebaseUser?.displayName?.isNotEmpty == true
+              ? firebaseUser!.displayName!
+              : prefs.getString(AppConstants.prefUserName)) ??
+          'User';
 
       final now = DateTime.now();
       final results = await Future.wait([
