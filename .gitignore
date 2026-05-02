@@ -65,6 +65,7 @@ tags
 # Sublime Text
 *.sublime-workspace
 *.sublime-project
+**/claude.md
 
 # ─── Flutter / Dart / Pub ──────────────────────────────────────────────────────
 
@@ -115,7 +116,6 @@ app.*.map.json
 *.keystore
 *.jks
 key.properties
-**/claude.md
 
 # Firebase — generated files contain real API keys; regenerate with FlutterFire CLI
 # Run: flutterfire configure
