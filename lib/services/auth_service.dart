@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../utils/constants.dart';
+import 'split_bill_service.dart';
 
 class AuthService {
   static final AuthService instance = AuthService._();
@@ -13,10 +14,16 @@ class AuthService {
   bool get isLoggedIn => _auth.currentUser != null;
 
   Future<UserCredential> signIn(String email, String password) async {
-    return await _auth.signInWithEmailAndPassword(
+    final credential = await _auth.signInWithEmailAndPassword(
       email: email.trim(),
       password: password,
     );
+    // Best-effort: refresh the profile for split-bill discovery.
+    // Firestore failure must not block login.
+    try {
+      await SplitBillService.instance.saveCurrentUserProfile();
+    } catch (_) {}
+    return credential;
   }
 
   Future<UserCredential> register(
@@ -29,6 +36,11 @@ class AuthService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(AppConstants.prefUserName, name.trim());
     await prefs.setString(AppConstants.prefUserEmail, email.trim());
+    // Best-effort: make user discoverable for split-bill.
+    // Firestore failure must not block registration.
+    try {
+      await SplitBillService.instance.saveCurrentUserProfile();
+    } catch (_) {}
     return credential;
   }
 

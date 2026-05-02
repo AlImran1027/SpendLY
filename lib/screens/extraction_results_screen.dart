@@ -26,6 +26,7 @@ import '../services/gemini_service.dart';
 import '../services/lm_studio_service.dart';
 import '../utils/constants.dart';
 import 'expense_entry_screen.dart';
+import 'split_bill_screen.dart';
 
 class ExtractionResultsScreen extends StatefulWidget {
   const ExtractionResultsScreen({super.key});
@@ -1693,6 +1694,48 @@ class _ExtractionResultsScreenState extends State<ExtractionResultsScreen>
     );
   }
 
+  // ─── Split Bill ─────────────────────────────────────────────────────────────
+
+  void _onSplitBillTap() {
+    if (!_canSave) return;
+    final data = _data!;
+
+    // Compute average AI confidence for the split record.
+    final confidences = [
+      data.merchantConfidence,
+      data.dateConfidence,
+      data.totalConfidence,
+      data.categoryConfidence,
+      data.paymentMethodConfidence,
+      ...data.items.map((i) => i.confidence),
+    ].where((c) => c > 0).toList();
+    final avgConfidence = confidences.isEmpty
+        ? null
+        : confidences.reduce((a, b) => a + b) / confidences.length;
+
+    Navigator.pushNamed(
+      context,
+      AppConstants.splitBillRoute,
+      arguments: SplitBillArgs(
+        merchant: data.merchantName,
+        category: data.category,
+        totalAmount: data.totalAmount,
+        date: data.date!,
+        paymentMethod: data.paymentMethod,
+        imagePath: _imagePath,
+        aiConfidence: avgConfidence,
+        items: data.items
+            .map((i) => ExpenseItem(
+                  name: i.name,
+                  quantity: i.quantity,
+                  unitPrice: i.unitPrice,
+                  subtotal: i.subtotal,
+                ))
+            .toList(),
+      ),
+    );
+  }
+
   // ─── Bottom Action Buttons ──────────────────────────────────────────────────
 
   Widget _buildBottomActions() {
@@ -1713,70 +1756,105 @@ class _ExtractionResultsScreenState extends State<ExtractionResultsScreen>
           ),
         ],
       ),
-      child: Row(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          // Edit Details (outlined)
-          Expanded(
-            child: OutlinedButton.icon(
-              onPressed: _isSaving
-                  ? null
-                  : () {
-                      Navigator.pushNamed(
-                        context,
-                        AppConstants.expenseEntryRoute,
-                        arguments: ExpenseEntryArgs(
-                          extractedData: _data,
-                        ),
-                      );
-                    },
-              icon: const Icon(Icons.edit_outlined, size: 20),
-              label: const Text('Edit Details'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: AppConstants.primaryGreen,
-                side: const BorderSide(
-                    color: AppConstants.primaryGreen, width: 1.5),
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(
-                      AppConstants.borderRadiusSmall),
+          // ── Split Bill button (Food/Restaurant only) ──────────────────────
+          if (_data?.category == 'Food/Restaurant') ...[
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: (_canSave && !_isSaving) ? _onSplitBillTap : null,
+                icon: const Icon(Icons.call_split, size: 18),
+                label: const Text('Split Bill'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFFE65100),
+                  side: BorderSide(
+                    color: _canSave
+                        ? const Color(0xFFE65100)
+                        : const Color(0xFFE65100).withValues(alpha: 0.35),
+                    width: 1.5,
+                  ),
+                  padding: const EdgeInsets.symmetric(vertical: 13),
+                  shape: RoundedRectangleBorder(
+                    borderRadius:
+                        BorderRadius.circular(AppConstants.borderRadiusSmall),
+                  ),
+                  textStyle: const TextStyle(
+                      fontSize: 14, fontWeight: FontWeight.bold),
                 ),
-                textStyle: const TextStyle(
-                    fontSize: 16, fontWeight: FontWeight.bold),
               ),
             ),
-          ),
+            const SizedBox(height: AppConstants.paddingSmall),
+          ],
 
-          const SizedBox(width: AppConstants.paddingSmall),
-
-          // Save Expense (filled)
-          Expanded(
-            child: FilledButton.icon(
-              onPressed: (_canSave && !_isSaving) ? _saveExpense : null,
-              icon: _isSaving
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(
-                          strokeWidth: 2, color: Colors.white),
-                    )
-                  : const Icon(Icons.check, size: 20),
-              label: Text(_isSaving ? 'Saving…' : 'Save Expense'),
-              style: FilledButton.styleFrom(
-                backgroundColor: AppConstants.primaryGreen,
-                disabledBackgroundColor:
-                    AppConstants.primaryGreen.withValues(alpha: 0.4),
-                foregroundColor: Colors.white,
-                disabledForegroundColor:
-                    Colors.white.withValues(alpha: 0.7),
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(
-                      AppConstants.borderRadiusSmall),
+          // ── Edit Details + Save Expense ───────────────────────────────────
+          Row(
+            children: [
+              // Edit Details (outlined)
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: _isSaving
+                      ? null
+                      : () {
+                          Navigator.pushNamed(
+                            context,
+                            AppConstants.expenseEntryRoute,
+                            arguments: ExpenseEntryArgs(
+                              extractedData: _data,
+                            ),
+                          );
+                        },
+                  icon: const Icon(Icons.edit_outlined, size: 20),
+                  label: const Text('Edit Details'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppConstants.primaryGreen,
+                    side: const BorderSide(
+                        color: AppConstants.primaryGreen, width: 1.5),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(
+                          AppConstants.borderRadiusSmall),
+                    ),
+                    textStyle: const TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
                 ),
-                textStyle: const TextStyle(
-                    fontSize: 16, fontWeight: FontWeight.bold),
               ),
-            ),
+
+              const SizedBox(width: AppConstants.paddingSmall),
+
+              // Save Expense (filled)
+              Expanded(
+                child: FilledButton.icon(
+                  onPressed: (_canSave && !_isSaving) ? _saveExpense : null,
+                  icon: _isSaving
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: Colors.white),
+                        )
+                      : const Icon(Icons.check, size: 20),
+                  label: Text(_isSaving ? 'Saving…' : 'Save Expense'),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppConstants.primaryGreen,
+                    disabledBackgroundColor:
+                        AppConstants.primaryGreen.withValues(alpha: 0.4),
+                    foregroundColor: Colors.white,
+                    disabledForegroundColor:
+                        Colors.white.withValues(alpha: 0.7),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(
+                          AppConstants.borderRadiusSmall),
+                    ),
+                    textStyle: const TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),

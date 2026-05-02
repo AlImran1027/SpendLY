@@ -123,6 +123,10 @@ google-services.json
 GoogleService-Info.plist
 lib/firebase_options.dart
 firebase.json
+.firebaserc
+
+# Cloud Functions — npm-installed dependencies; restore with: cd functions && npm install
+functions/node_modules/
 
 # ─── Generated Dart files ─────────────────────────────────────────────────────
 *.g.dart

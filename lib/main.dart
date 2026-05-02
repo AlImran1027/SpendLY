@@ -5,6 +5,7 @@
 library;
 
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'firebase_options.dart';
@@ -22,11 +23,28 @@ import 'screens/budget_screen.dart';
 import 'screens/forgot_password_screen.dart';
 import 'screens/change_password_screen.dart';
 import 'screens/reset_password_screen.dart';
+import 'screens/split_bill_screen.dart';
 import 'services/currency_service.dart';
 import 'services/gemini_service.dart';
 import 'services/lm_studio_service.dart';
 import 'services/notification_service.dart';
 import 'utils/constants.dart';
+
+/// Top-level FCM background/terminated-state handler.
+///
+/// This function runs in a separate isolate when an FCM message arrives and
+/// the app is in the background or fully terminated. It must be a top-level
+/// (non-class) function annotated with @pragma('vm:entry-point').
+///
+/// Firebase shows the notification in the system tray automatically when the
+/// message has a 'notification' payload — no local-notification code is needed
+/// here. This handler just ensures Firebase is initialised in the isolate.
+@pragma('vm:entry-point')
+Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  // The OS renders the notification automatically from the FCM payload.
+  // Nothing else is needed for background / terminated state.
+}
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -37,6 +55,9 @@ Future<void> main() async {
     if (e.code != 'duplicate-app') rethrow;
   }
 
+  // Register the background FCM handler BEFORE any other Firebase calls.
+  FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+
   // Load persisted settings before the first frame.
   await Future.wait([
     CurrencyService.instance.load(),
@@ -44,7 +65,10 @@ Future<void> main() async {
     LMStudioService.instance.load(),
     NotificationService.instance.init(),
   ]);
+
+  // Request local-notification OS permission and set up FCM.
   await NotificationService.instance.requestPermission();
+  await NotificationService.instance.setupFcm();
 
   // Lock orientation to portrait for consistent receipt-capture UX.
   SystemChrome.setPreferredOrientations([
@@ -108,6 +132,7 @@ class SpendlyApp extends StatelessWidget {
         AppConstants.forgotPasswordRoute: (_) => const ForgotPasswordScreen(),
         AppConstants.changePasswordRoute: (_) => const ChangePasswordScreen(),
         AppConstants.resetPasswordRoute: (_) => const ResetPasswordScreen(),
+        AppConstants.splitBillRoute: (_) => const SplitBillScreen(),
       },
     );
   }

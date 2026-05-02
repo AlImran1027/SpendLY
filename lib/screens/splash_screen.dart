@@ -9,6 +9,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../services/auth_service.dart';
 import '../utils/constants.dart';
 
@@ -131,7 +132,33 @@ class _SplashScreenState extends State<SplashScreen>
 
   Future<bool> _checkLoginStatus() async {
     try {
-      return AuthService.instance.isLoggedIn;
+      final isLoggedIn = AuthService.instance.isLoggedIn;
+      if (isLoggedIn) {
+        // Firebase auto-restored the session — make sure SharedPreferences has
+        // the user's name and email so every screen can read them without going
+        // through the login flow.
+        final user = AuthService.instance.currentUser;
+        if (user != null) {
+          final prefs = await SharedPreferences.getInstance();
+          final storedName = prefs.getString(AppConstants.prefUserName);
+          final storedEmail = prefs.getString(AppConstants.prefUserEmail);
+          if (storedName == null || storedName.isEmpty) {
+            final name = user.displayName?.isNotEmpty == true
+                ? user.displayName!
+                : (user.email?.split('@').first ?? '');
+            if (name.isNotEmpty) {
+              await prefs.setString(AppConstants.prefUserName, name);
+            }
+          }
+          if (storedEmail == null || storedEmail.isEmpty) {
+            if (user.email?.isNotEmpty == true) {
+              await prefs.setString(AppConstants.prefUserEmail, user.email!);
+            }
+          }
+          await prefs.setBool(AppConstants.prefIsLoggedIn, true);
+        }
+      }
+      return isLoggedIn;
     } catch (e) {
       debugPrint('SplashScreen: Error reading login state — $e');
       return false;

@@ -31,6 +31,7 @@ import '../services/currency_service.dart';
 import '../services/database_service.dart';
 import '../services/gemini_service.dart';
 import '../services/lm_studio_service.dart';
+import '../services/notification_service.dart';
 import '../utils/constants.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -45,7 +46,7 @@ class _ProfileScreenState extends State<ProfileScreen>
   // ─── User data ─────────────────────────────────────────────────────────────
   String _userName = '';
   String _userEmail = '';
-  final String _memberSince = 'Jan 2025';
+  String _memberSince = '';
 
   // ─── Settings state ────────────────────────────────────────────────────────
   bool _notificationsEnabled = true;
@@ -91,43 +92,91 @@ class _ProfileScreenState extends State<ProfileScreen>
 
   Future<void> _loadUserData() async {
     final prefs = await SharedPreferences.getInstance();
-    final db = DatabaseService.instance;
-    final now = DateTime.now();
-
-    final results = await Future.wait([
-      db.getExpenseCount(),
-      db.getBudgetCount(now.year, now.month),
-    ]);
-    final count = results[0];
-    final budgetCount = results[1];
-
-    // Sum all monthly totals for the current year as total-spent proxy.
-    final monthTotals = await Future.wait(
-      List.generate(now.month, (i) => db.getMonthlyTotal(now.year, i + 1)),
-    );
-    final totalSpentAmt = monthTotals.fold(0.0, (s, v) => s + v);
-
     final firebaseUser = AuthService.instance.currentUser;
+
+    // On a fresh install, Firebase auto-restores the session but SharedPreferences
+    // is empty. Sync Firebase user data into prefs so settings persist correctly.
+    if (firebaseUser != null) {
+      final storedName = prefs.getString(AppConstants.prefUserName);
+      final storedEmail = prefs.getString(AppConstants.prefUserEmail);
+      if (storedName == null || storedName.isEmpty) {
+        final derived = firebaseUser.displayName?.isNotEmpty == true
+            ? firebaseUser.displayName!
+            : (firebaseUser.email?.split('@').first ?? '');
+        if (derived.isNotEmpty) {
+          await prefs.setString(AppConstants.prefUserName, derived);
+        }
+      }
+      if (storedEmail == null || storedEmail.isEmpty) {
+        if (firebaseUser.email?.isNotEmpty == true) {
+          await prefs.setString(AppConstants.prefUserEmail, firebaseUser.email!);
+        }
+      }
+    }
+
+    // Show identity + settings immediately — no DB calls needed for this block.
+    // This runs before the Firestore queries so the profile card is never blank.
     if (!mounted) return;
     setState(() {
+      final storedName = prefs.getString(AppConstants.prefUserName);
       _userName = (firebaseUser?.displayName?.isNotEmpty == true
               ? firebaseUser!.displayName!
-              : prefs.getString(AppConstants.prefUserName)) ??
+              : (storedName?.isNotEmpty == true
+                  ? storedName!
+                  : firebaseUser?.email?.split('@').first)) ??
           'User';
-      _userEmail = firebaseUser?.email ??
-          prefs.getString(AppConstants.prefUserEmail) ??
-          'user@example.com';
+
+      _userEmail = (firebaseUser?.email?.isNotEmpty == true
+              ? firebaseUser!.email!
+              : prefs.getString(AppConstants.prefUserEmail)) ??
+          '';
+
+      final creationTime = firebaseUser?.metadata.creationTime;
+      if (creationTime != null) {
+        const months = [
+          'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+          'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+        ];
+        _memberSince = '${months[creationTime.month - 1]} ${creationTime.year}';
+      } else {
+        _memberSince = 'Jan 2025';
+      }
+
       _notificationsEnabled = prefs.getBool(_prefNotifications) ?? true;
       _darkModeEnabled = prefs.getBool(_prefDarkMode) ?? false;
       _selectedCurrency = CurrencyService.instance.label;
-      _selectedDateFormat =
-          prefs.getString(_prefDateFormat) ?? 'DD/MM/YYYY';
+      _selectedDateFormat = prefs.getString(_prefDateFormat) ?? 'DD/MM/YYYY';
       _selectedLanguage = prefs.getString(_prefLanguage) ?? 'English';
-      _totalExpenses = count;
-      _totalSpentRaw = totalSpentAmt;
-      _totalSpent = CurrencyService.instance.format(totalSpentAmt);
-      _activeBudgets = budgetCount;
     });
+
+    // Load DB / Firestore stats separately — these can fail without breaking
+    // the profile card above (e.g. Firestore rules not yet configured).
+    try {
+      final db = DatabaseService.instance;
+      final now = DateTime.now();
+
+      final results = await Future.wait([
+        db.getExpenseCount(),
+        db.getBudgetCount(now.year, now.month),
+      ]);
+      final count = results[0];
+      final budgetCount = results[1];
+
+      final monthTotals = await Future.wait(
+        List.generate(now.month, (i) => db.getMonthlyTotal(now.year, i + 1)),
+      );
+      final totalSpentAmt = monthTotals.fold(0.0, (s, v) => s + v);
+
+      if (!mounted) return;
+      setState(() {
+        _totalExpenses = count;
+        _totalSpentRaw = totalSpentAmt;
+        _totalSpent = CurrencyService.instance.format(totalSpentAmt);
+        _activeBudgets = budgetCount;
+      });
+    } catch (e) {
+      debugPrint('ProfileScreen: Failed to load stats — $e');
+    }
   }
 
   // ─── Preference keys ──────────────────────────────────────────────────────
@@ -462,6 +511,9 @@ class _ProfileScreenState extends State<ProfileScreen>
           icon: Icons.notifications_outlined,
           iconColor: AppConstants.primaryGreen,
           label: 'Notifications',
+          subtitle: _notificationsEnabled
+              ? 'Budget alerts & split requests enabled'
+              : 'Push alerts off — split requests still show in Home',
           trailing: Switch.adaptive(
             value: _notificationsEnabled,
             onChanged: _handleNotificationsToggle,
@@ -771,6 +823,11 @@ class _ProfileScreenState extends State<ProfileScreen>
     setState(() => _notificationsEnabled = value);
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_prefNotifications, value);
+
+    if (value) {
+      // Re-request OS permission in case the user had previously denied it.
+      await NotificationService.instance.requestPermission();
+    }
   }
 
   Future<void> _handleDarkModeToggle(bool value) async {

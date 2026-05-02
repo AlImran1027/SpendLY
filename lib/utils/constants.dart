@@ -76,6 +76,7 @@ class AppConstants {
   static const String forgotPasswordRoute = '/forgot-password';
   static const String changePasswordRoute = '/change-password';
   static const String resetPasswordRoute = '/reset-password';
+  static const String splitBillRoute = '/split-bill';
 
   // ─── EXPENSE CATEGORIES ─────────────────────────────────────────────────────
   static const List<String> expenseCategories = [

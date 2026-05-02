@@ -32,6 +32,7 @@ import '../models/extracted_receipt_data.dart';
 import '../services/currency_service.dart';
 import '../services/database_service.dart';
 import '../utils/constants.dart';
+import 'split_bill_screen.dart';
 
 // ─── Route Arguments ──────────────────────────────────────────────────────────
 
@@ -622,6 +623,9 @@ class _ExpenseEntryScreenState extends State<ExpenseEntryScreen>
                       _stagger(4, _buildPaymentMethodField()),
                       _stagger(5, _buildNotesField()),
                       _stagger(6, _buildTotalCard()),
+                      if (_selectedCategory == 'Food/Restaurant' &&
+                          !_isEditMode)
+                        _stagger(7, _buildSplitBillCard()),
 
                       const SizedBox(height: AppConstants.paddingMedium),
                     ],
@@ -1254,6 +1258,107 @@ class _ExpenseEntryScreenState extends State<ExpenseEntryScreen>
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // SPLIT BILL CARD (Food/Restaurant only, non-edit mode)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  Widget _buildSplitBillCard() {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: AppConstants.paddingMedium),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF3E0),
+        borderRadius: BorderRadius.circular(AppConstants.borderRadiusSmall),
+        border: Border.all(color: const Color(0xFFE65100).withValues(alpha: 0.35)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 4,
+            offset: const Offset(0, 1),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.call_split, color: Color(0xFFE65100), size: 22),
+          const SizedBox(width: 10),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Split this bill?',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFFE65100),
+                  ),
+                ),
+                SizedBox(height: 2),
+                Text(
+                  'Share this expense with other Spendly users',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: AppConstants.textMediumGray,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          FilledButton(
+            onPressed: _canSave ? _onSplitBillTap : null,
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFFE65100),
+              disabledBackgroundColor:
+                  const Color(0xFFE65100).withValues(alpha: 0.4),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              shape: RoundedRectangleBorder(
+                borderRadius:
+                    BorderRadius.circular(AppConstants.borderRadiusSmall),
+              ),
+              textStyle:
+                  const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+            ),
+            child: const Text('Split'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _onSplitBillTap() {
+    if (!_canSave) return;
+    if (!(_formKey.currentState?.validate() ?? false)) return;
+
+    final expenseItems = _items
+        .map((f) => ExpenseItem(
+              name: f.nameCtrl.text.trim(),
+              quantity: f.quantity,
+              unitPrice: f.unitPrice,
+              subtotal: f.subtotal,
+            ))
+        .toList();
+
+    Navigator.pushNamed(
+      context,
+      AppConstants.splitBillRoute,
+      arguments: SplitBillArgs(
+        merchant: _merchantCtrl.text.trim(),
+        category: _selectedCategory,
+        totalAmount: _totalAmount,
+        date: _selectedDate!,
+        paymentMethod: _paymentMethod,
+        notes: _notesCtrl.text.trim(),
+        imagePath: _extractedData?.imagePath ?? '',
+        aiConfidence: _isPreFilled ? _extractedData?.totalConfidence : null,
+        items: expenseItems,
       ),
     );
   }
