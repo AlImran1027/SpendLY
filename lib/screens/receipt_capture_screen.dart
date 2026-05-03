@@ -175,8 +175,8 @@ class _ReceiptCaptureScreenState extends State<ReceiptCaptureScreen>
           'Spendly needs access to your ${isCamera ? "camera" : "photo library"} '
           'to capture receipt images. Please grant permission in your device settings.',
           textAlign: TextAlign.center,
-          style: const TextStyle(
-            color: AppConstants.textMediumGray,
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
             fontSize: 14,
             height: 1.5,
           ),

@@ -160,10 +160,7 @@ class _ReceiptPreviewScreenState extends State<ReceiptPreviewScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppConstants.backgroundColor,
       appBar: AppBar(
-        backgroundColor: AppConstants.backgroundColor,
-        foregroundColor: AppConstants.textDark,
         title: const Text(
           'Preview Receipt',
           style: TextStyle(fontWeight: FontWeight.w600),
@@ -213,10 +210,10 @@ class _ReceiptPreviewScreenState extends State<ReceiptPreviewScreen>
   /// pinch-to-zoom and panning.
   Widget _buildImagePreview() {
     if (_imagePath.isEmpty) {
-      return const Center(
+      return Center(
         child: Text(
           'No image available',
-          style: TextStyle(color: AppConstants.textMediumGray),
+          style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
         ),
       );
     }
@@ -226,7 +223,7 @@ class _ReceiptPreviewScreenState extends State<ReceiptPreviewScreen>
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(AppConstants.borderRadiusMedium),
         border: Border.all(
-          color: AppConstants.textLightGray.withValues(alpha: 0.5),
+          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.5),
         ),
         boxShadow: [
           BoxShadow(
@@ -246,20 +243,20 @@ class _ReceiptPreviewScreenState extends State<ReceiptPreviewScreen>
             fit: BoxFit.contain,
             errorBuilder: (context, error, stackTrace) {
               return Container(
-                color: Colors.grey.shade100,
-                child: const Center(
+                color: Theme.of(context).colorScheme.surface,
+                child: Center(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(
                         Icons.broken_image_outlined,
                         size: 48,
-                        color: AppConstants.textLightGray,
+                        color: Theme.of(context).colorScheme.outline,
                       ),
-                      SizedBox(height: 12),
+                      const SizedBox(height: 12),
                       Text(
                         'Unable to load image',
-                        style: TextStyle(color: AppConstants.textMediumGray),
+                        style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
                       ),
                     ],
                   ),
@@ -297,7 +294,7 @@ class _ReceiptPreviewScreenState extends State<ReceiptPreviewScreen>
             Text(
               'Analysing image quality…',
               style: TextStyle(
-                color: AppConstants.textMediumGray,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
                 fontSize: 13,
                 fontStyle: FontStyle.italic,
               ),
@@ -317,7 +314,7 @@ class _ReceiptPreviewScreenState extends State<ReceiptPreviewScreen>
           ),
           padding: const EdgeInsets.all(AppConstants.paddingMedium),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: Theme.of(context).colorScheme.surface,
             borderRadius: BorderRadius.circular(
               AppConstants.borderRadiusMedium,
             ),
@@ -411,9 +408,9 @@ class _ReceiptPreviewScreenState extends State<ReceiptPreviewScreen>
         const SizedBox(height: 6),
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 11,
-            color: AppConstants.textMediumGray,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
         ),
         const SizedBox(height: 6),

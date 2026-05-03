@@ -268,13 +268,11 @@ class _RegisterScreenState extends State<RegisterScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppConstants.backgroundColor,
       // AppBar with back arrow
       appBar: AppBar(
-        backgroundColor: AppConstants.backgroundColor,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppConstants.textDark),
+          icon: Icon(Icons.arrow_back, color: Theme.of(context).colorScheme.onSurface),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -360,7 +358,7 @@ class _RegisterScreenState extends State<RegisterScreen>
           ),
         ),
         const SizedBox(height: AppConstants.paddingMedium),
-        const Text(
+        Text(
           'Create Account',
           style: TextStyle(
             fontSize: 28,
@@ -369,12 +367,12 @@ class _RegisterScreenState extends State<RegisterScreen>
           ),
         ),
         const SizedBox(height: AppConstants.paddingSmall),
-        const Text(
+        Text(
           'Start tracking your expenses smartly',
           textAlign: TextAlign.center,
           style: TextStyle(
             fontSize: 14,
-            color: AppConstants.textMediumGray,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
         ),
       ],
@@ -485,7 +483,7 @@ class _RegisterScreenState extends State<RegisterScreen>
                 _obscurePassword
                     ? Icons.visibility_outlined
                     : Icons.visibility_off_outlined,
-                color: AppConstants.textMediumGray,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
                 size: 22,
               ),
               onPressed: () {
@@ -519,7 +517,7 @@ class _RegisterScreenState extends State<RegisterScreen>
                 _obscureConfirmPassword
                     ? Icons.visibility_outlined
                     : Icons.visibility_off_outlined,
-                color: AppConstants.textMediumGray,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
                 size: 22,
               ),
               onPressed: () {
@@ -569,7 +567,7 @@ class _RegisterScreenState extends State<RegisterScreen>
               'Password strength:',
               style: TextStyle(
                 fontSize: 12,
-                color: AppConstants.textMediumGray,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
             Text(
@@ -614,7 +612,7 @@ class _RegisterScreenState extends State<RegisterScreen>
             side: BorderSide(
               color: _errorMessage != null && !_agreedToTerms
                   ? AppConstants.errorRed
-                  : AppConstants.textMediumGray,
+                  : Theme.of(context).colorScheme.onSurfaceVariant,
               width: 1.5,
             ),
           ),
@@ -634,9 +632,9 @@ class _RegisterScreenState extends State<RegisterScreen>
                   },
             child: RichText(
               text: TextSpan(
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13,
-                  color: AppConstants.textMediumGray,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
                 children: [
                   const TextSpan(text: 'I agree to the '),
@@ -673,11 +671,11 @@ class _RegisterScreenState extends State<RegisterScreen>
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        const Text(
+        Text(
           'Already have an account?',
           style: TextStyle(
             fontSize: 14,
-            color: AppConstants.textMediumGray,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
         ),
         TextButton(

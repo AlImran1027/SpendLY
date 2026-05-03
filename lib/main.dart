@@ -28,6 +28,7 @@ import 'services/currency_service.dart';
 import 'services/gemini_service.dart';
 import 'services/lm_studio_service.dart';
 import 'services/notification_service.dart';
+import 'services/theme_service.dart';
 import 'utils/constants.dart';
 
 /// Top-level FCM background/terminated-state handler.
@@ -64,6 +65,7 @@ Future<void> main() async {
     GeminiService.instance.load(),
     LMStudioService.instance.load(),
     NotificationService.instance.init(),
+    ThemeService.instance.load(),
   ]);
 
   // Request local-notification OS permission and set up FCM.
@@ -94,46 +96,92 @@ class SpendlyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: AppConstants.appName,
-      debugShowCheckedModeBanner: false,
+    return ValueListenableBuilder<ThemeMode>(
+      valueListenable: ThemeService.instance.notifier,
+      builder: (context, mode, child) => MaterialApp(
+        title: AppConstants.appName,
+        debugShowCheckedModeBanner: false,
 
-      // ── Theme ──────────────────────────────────────────────────────────────
-      theme: ThemeData(
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: AppConstants.primaryGreen,
-          primary: AppConstants.primaryGreen,
-          error: AppConstants.errorRed,
-          surface: AppConstants.backgroundColor,
+        // ── Theme mode (toggled by ThemeService) ───────────────────────────
+        themeMode: mode,
+
+        // ── Light theme ────────────────────────────────────────────────────
+        theme: ThemeData(
+          useMaterial3: true,
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: AppConstants.primaryGreen,
+            primary: AppConstants.primaryGreen,
+            error: AppConstants.errorRed,
+            surface: AppConstants.backgroundColor,
+          ),
+          scaffoldBackgroundColor: AppConstants.backgroundColor,
+          appBarTheme: const AppBarTheme(
+            backgroundColor: AppConstants.backgroundColor,
+            foregroundColor: AppConstants.textDark,
+            elevation: 0,
+            centerTitle: true,
+          ),
+          switchTheme: SwitchThemeData(
+            thumbColor: WidgetStateProperty.resolveWith(
+              (s) => s.contains(WidgetState.selected)
+                  ? AppConstants.primaryGreen
+                  : null,
+            ),
+            trackColor: WidgetStateProperty.resolveWith(
+              (s) => s.contains(WidgetState.selected)
+                  ? AppConstants.primaryGreen.withValues(alpha: 0.5)
+                  : null,
+            ),
+          ),
         ),
-        scaffoldBackgroundColor: AppConstants.backgroundColor,
-        appBarTheme: const AppBarTheme(
-          backgroundColor: AppConstants.backgroundColor,
-          foregroundColor: AppConstants.textDark,
-          elevation: 0,
-          centerTitle: true,
+
+        // ── Dark theme ─────────────────────────────────────────────────────
+        darkTheme: ThemeData(
+          useMaterial3: true,
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: AppConstants.primaryGreen,
+            brightness: Brightness.dark,
+          ),
+          appBarTheme: const AppBarTheme(
+            elevation: 0,
+            centerTitle: true,
+          ),
+          switchTheme: SwitchThemeData(
+            thumbColor: WidgetStateProperty.resolveWith(
+              (s) => s.contains(WidgetState.selected)
+                  ? AppConstants.lightGreen
+                  : null,
+            ),
+            trackColor: WidgetStateProperty.resolveWith(
+              (s) => s.contains(WidgetState.selected)
+                  ? AppConstants.lightGreen.withValues(alpha: 0.4)
+                  : null,
+            ),
+          ),
         ),
+
+        // ── Routing ────────────────────────────────────────────────────────
+        initialRoute: AppConstants.splashRoute,
+        routes: {
+          AppConstants.splashRoute: (_) => const SplashScreen(),
+          AppConstants.loginRoute: (_) => const LoginScreen(),
+          AppConstants.registerRoute: (_) => const RegisterScreen(),
+          AppConstants.homeRoute: (_) => const MainNavShell(),
+          AppConstants.receiptCaptureRoute: (_) => const ReceiptCaptureScreen(),
+          AppConstants.receiptPreviewRoute: (_) => const ReceiptPreviewScreen(),
+          AppConstants.extractionResultsRoute: (_) =>
+              const ExtractionResultsScreen(),
+          AppConstants.expenseEntryRoute: (_) => const ExpenseEntryScreen(),
+          AppConstants.expenseDetailRoute: (_) => const ExpenseDetailScreen(),
+          AppConstants.budgetRoute: (_) => const BudgetScreen(),
+          AppConstants.forgotPasswordRoute: (_) =>
+              const ForgotPasswordScreen(),
+          AppConstants.changePasswordRoute: (_) =>
+              const ChangePasswordScreen(),
+          AppConstants.resetPasswordRoute: (_) => const ResetPasswordScreen(),
+          AppConstants.splitBillRoute: (_) => const SplitBillScreen(),
+        },
       ),
-
-      // ── Routing ────────────────────────────────────────────────────────────
-      initialRoute: AppConstants.splashRoute,
-      routes: {
-        AppConstants.splashRoute: (_) => const SplashScreen(),
-        AppConstants.loginRoute: (_) => const LoginScreen(),
-        AppConstants.registerRoute: (_) => const RegisterScreen(),
-        AppConstants.homeRoute: (_) => const MainNavShell(),
-        AppConstants.receiptCaptureRoute: (_) => const ReceiptCaptureScreen(),
-        AppConstants.receiptPreviewRoute: (_) => const ReceiptPreviewScreen(),
-        AppConstants.extractionResultsRoute: (_) => const ExtractionResultsScreen(),
-        AppConstants.expenseEntryRoute: (_) => const ExpenseEntryScreen(),
-        AppConstants.expenseDetailRoute: (_) => const ExpenseDetailScreen(),
-        AppConstants.budgetRoute: (_) => const BudgetScreen(),
-        AppConstants.forgotPasswordRoute: (_) => const ForgotPasswordScreen(),
-        AppConstants.changePasswordRoute: (_) => const ChangePasswordScreen(),
-        AppConstants.resetPasswordRoute: (_) => const ResetPasswordScreen(),
-        AppConstants.splitBillRoute: (_) => const SplitBillScreen(),
-      },
     );
   }
 }

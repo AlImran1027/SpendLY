@@ -192,7 +192,6 @@ class _BudgetScreenState extends State<BudgetScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAF8),
       body: SafeArea(
         child: _isLoading
             ? const Center(
@@ -227,7 +226,6 @@ class _BudgetScreenState extends State<BudgetScreen> {
   Widget _buildAppBar() {
     final canPop = Navigator.of(context).canPop();
     return SliverAppBar(
-      backgroundColor: const Color(0xFFF8FAF8),
       elevation: 0,
       floating: true,
       snap: true,
@@ -235,17 +233,17 @@ class _BudgetScreenState extends State<BudgetScreen> {
       titleSpacing: canPop ? 0 : AppConstants.paddingLarge,
       leading: canPop
           ? IconButton(
-              icon: const Icon(Icons.arrow_back_ios_new,
-                  size: 20, color: AppConstants.textDark),
+              icon: Icon(Icons.arrow_back_ios_new,
+                  size: 20, color: Theme.of(context).colorScheme.onSurface),
               onPressed: () => Navigator.pop(context),
             )
           : null,
-      title: const Text(
+      title: Text(
         'Budget',
         style: TextStyle(
           fontSize: 26,
           fontWeight: FontWeight.w800,
-          color: AppConstants.textDark,
+          color: Theme.of(context).colorScheme.onSurface,
         ),
       ),
       actions: [
@@ -468,12 +466,12 @@ class _BudgetScreenState extends State<BudgetScreen> {
         children: [
           Row(
             children: [
-              const Text(
+              Text(
                 'Your Budgets',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
-                  color: AppConstants.textDark,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
               const Spacer(),
@@ -513,18 +511,18 @@ class _BudgetScreenState extends State<BudgetScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'No Budget Set',
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w700,
-              color: AppConstants.textDark,
+              color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
           const SizedBox(height: 4),
-          const Text(
+          Text(
             'These categories have spending but no budget.',
-            style: TextStyle(fontSize: 12, color: AppConstants.textMediumGray),
+            style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
           ),
           const SizedBox(height: 10),
           ...visible.map(
@@ -561,21 +559,21 @@ class _BudgetScreenState extends State<BudgetScreen> {
               ),
             ),
             const SizedBox(height: AppConstants.paddingLarge),
-            const Text(
+            Text(
               'No Budgets Yet',
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.w700,
-                color: AppConstants.textDark,
+                color: Theme.of(context).colorScheme.onSurface,
               ),
             ),
             const SizedBox(height: AppConstants.paddingSmall),
-            const Text(
+            Text(
               'Set category budgets to track your\nspending and stay on target.',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 14,
-                color: AppConstants.textMediumGray,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
                 height: 1.5,
               ),
             ),
@@ -655,7 +653,7 @@ class _MonthNavigator extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(AppConstants.borderRadiusMedium),
         boxShadow: [
           BoxShadow(
@@ -670,16 +668,16 @@ class _MonthNavigator extends StatelessWidget {
         children: [
           IconButton(
             icon: const Icon(Icons.chevron_left, size: 20),
-            color: AppConstants.textDark,
+            color: Theme.of(context).colorScheme.onSurface,
             visualDensity: VisualDensity.compact,
             onPressed: onPrevious,
           ),
           Text(
             DateFormat('MMM yyyy').format(month),
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w600,
-              color: AppConstants.textDark,
+              color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
           IconButton(
@@ -687,8 +685,8 @@ class _MonthNavigator extends StatelessWidget {
               Icons.chevron_right,
               size: 20,
               color: isCurrentMonth
-                  ? AppConstants.textLightGray
-                  : AppConstants.textDark,
+                  ? Theme.of(context).colorScheme.outline
+                  : Theme.of(context).colorScheme.onSurface,
             ),
             visualDensity: VisualDensity.compact,
             onPressed: isCurrentMonth ? null : onNext,
@@ -721,7 +719,7 @@ class _HealthChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(AppConstants.borderRadiusMedium),
         boxShadow: [
           BoxShadow(
@@ -749,9 +747,9 @@ class _HealthChip extends StatelessWidget {
                 ),
                 Text(
                   label,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 10,
-                    color: AppConstants.textMediumGray,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -783,7 +781,7 @@ class _BudgetCategoryCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(AppConstants.paddingMedium),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(AppConstants.borderRadiusMedium),
         boxShadow: [
           BoxShadow(
@@ -819,10 +817,10 @@ class _BudgetCategoryCard extends StatelessWidget {
                   children: [
                     Text(
                       budget.category,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
-                        color: AppConstants.textDark,
+                        color: Theme.of(context).colorScheme.onSurface,
                       ),
                     ),
                     const SizedBox(height: 2),
@@ -854,17 +852,17 @@ class _BudgetCategoryCard extends StatelessWidget {
             children: [
               Text(
                 '${CurrencyService.instance.format(budget.spent)} spent',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  color: AppConstants.textDark,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
               const Spacer(),
               Text(
                 'of ${CurrencyService.instance.format(budget.budget, decimals: 0)}',
-                style: const TextStyle(
-                    fontSize: 12, color: AppConstants.textMediumGray),
+                style: TextStyle(
+                    fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
               ),
               const SizedBox(width: 8),
               Text(
@@ -949,7 +947,7 @@ class _UnbudgetedCard extends StatelessWidget {
         vertical: 12,
       ),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(AppConstants.borderRadiusMedium),
         border: Border.all(color: Colors.grey.withValues(alpha: 0.15)),
         boxShadow: [
@@ -979,10 +977,10 @@ class _UnbudgetedCard extends StatelessWidget {
               children: [
                 Text(
                   budget.category,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: AppConstants.textDark,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
                 if (budget.spent > 0)
@@ -992,10 +990,10 @@ class _UnbudgetedCard extends StatelessWidget {
                         fontSize: 11, color: AppConstants.warningAmber),
                   )
                 else
-                  const Text(
+                  Text(
                     'No spending yet',
                     style: TextStyle(
-                        fontSize: 11, color: AppConstants.textLightGray),
+                        fontSize: 11, color: Theme.of(context).colorScheme.outline),
                   ),
               ],
             ),
@@ -1068,9 +1066,9 @@ class _AddBudgetSheetState extends State<_AddBudgetSheet> {
       padding:
           EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
       child: Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          borderRadius: const BorderRadius.vertical(
               top: Radius.circular(AppConstants.borderRadiusLarge)),
         ),
         padding: const EdgeInsets.fromLTRB(AppConstants.paddingLarge, 0,
@@ -1086,36 +1084,36 @@ class _AddBudgetSheetState extends State<_AddBudgetSheet> {
                 height: 4,
                 margin: const EdgeInsets.symmetric(vertical: 12),
                 decoration: BoxDecoration(
-                  color: AppConstants.textLightGray,
+                  color: Theme.of(context).colorScheme.outline,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
             ),
 
             // Title
-            const Text(
+            Text(
               'Add Budget',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
-                color: AppConstants.textDark,
+                color: Theme.of(context).colorScheme.onSurface,
               ),
             ),
             const SizedBox(height: 4),
-            const Text(
+            Text(
               'Choose a category and set its monthly limit.',
-              style: TextStyle(fontSize: 13, color: AppConstants.textMediumGray),
+              style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurfaceVariant),
             ),
 
             const SizedBox(height: AppConstants.paddingMedium),
 
             // Category picker label
-            const Text(
+            Text(
               'CATEGORY',
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w700,
-                color: AppConstants.textLightGray,
+                color: Theme.of(context).colorScheme.outline,
                 letterSpacing: 1.0,
               ),
             ),
@@ -1136,7 +1134,7 @@ class _AddBudgetSheetState extends State<_AddBudgetSheet> {
                     decoration: BoxDecoration(
                       color: selected
                           ? b.iconColor.withValues(alpha: 0.1)
-                          : const Color(0xFFF8FAF8),
+                          : Theme.of(context).colorScheme.surface,
                       borderRadius: BorderRadius.circular(
                           AppConstants.borderRadiusMedium),
                       border: Border.all(
@@ -1153,7 +1151,7 @@ class _AddBudgetSheetState extends State<_AddBudgetSheet> {
                             size: 16,
                             color: selected
                                 ? b.iconColor
-                                : AppConstants.textLightGray),
+                                : Theme.of(context).colorScheme.outline),
                         const SizedBox(width: 6),
                         Text(
                           b.category,
@@ -1162,7 +1160,7 @@ class _AddBudgetSheetState extends State<_AddBudgetSheet> {
                             fontWeight: FontWeight.w500,
                             color: selected
                                 ? b.iconColor
-                                : AppConstants.textMediumGray,
+                                : Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
                         ),
                       ],
@@ -1192,12 +1190,12 @@ class _AddBudgetSheetState extends State<_AddBudgetSheet> {
             const SizedBox(height: AppConstants.paddingMedium),
 
             // Amount label
-            const Text(
+            Text(
               'BUDGET AMOUNT',
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w700,
-                color: AppConstants.textLightGray,
+                color: Theme.of(context).colorScheme.outline,
                 letterSpacing: 1.0,
               ),
             ),
@@ -1243,23 +1241,23 @@ class _AmountField extends StatelessWidget {
         FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
       ],
       onChanged: (_) => onChanged(),
-      style: const TextStyle(
+      style: TextStyle(
         fontSize: 18,
         fontWeight: FontWeight.w600,
-        color: AppConstants.textDark,
+        color: Theme.of(context).colorScheme.onSurface,
       ),
       decoration: InputDecoration(
         labelText: 'Monthly budget amount',
-        labelStyle: const TextStyle(color: AppConstants.textMediumGray),
+        labelStyle: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
         prefixText: '${CurrencyService.instance.symbol} ',
-        prefixStyle: const TextStyle(
+        prefixStyle: TextStyle(
           fontSize: 18,
           fontWeight: FontWeight.w600,
-          color: AppConstants.textDark,
+          color: Theme.of(context).colorScheme.onSurface,
         ),
         errorText: error,
         filled: true,
-        fillColor: const Color(0xFFF8FAF8),
+        fillColor: Theme.of(context).colorScheme.surface,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppConstants.borderRadiusMedium),
           borderSide: BorderSide.none,

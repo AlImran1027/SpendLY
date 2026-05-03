@@ -204,11 +204,11 @@ class _ExtractionResultsScreenState extends State<ExtractionResultsScreen>
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
         title: const Text('Choose AI Backend'),
-        content: const Text(
+        content: Text(
           'No extraction service is configured yet.\n\n'
           '• LM Studio — runs locally on your device or network (private).\n'
           '• Gemini — Google cloud API (requires an API key).',
-          style: TextStyle(fontSize: 13, color: AppConstants.textMediumGray, height: 1.5),
+          style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurfaceVariant, height: 1.5),
         ),
         actions: [
           TextButton(
@@ -251,10 +251,10 @@ class _ExtractionResultsScreenState extends State<ExtractionResultsScreen>
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
+              Text(
                 'Enter the URL where LM Studio is running and the name of a '
                 'vision-capable model you have loaded.',
-                style: TextStyle(fontSize: 13, color: AppConstants.textMediumGray, height: 1.5),
+                style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurfaceVariant, height: 1.5),
               ),
               const SizedBox(height: 12),
               TextField(
@@ -330,11 +330,11 @@ class _ExtractionResultsScreenState extends State<ExtractionResultsScreen>
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
+              Text(
                 'Receipt extraction uses the Google Gemini API. '
                 'Enter your API key to continue.',
                 style:
-                    TextStyle(fontSize: 13, color: AppConstants.textMediumGray),
+                    TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurfaceVariant),
               ),
               const SizedBox(height: 12),
               TextField(
@@ -355,10 +355,10 @@ class _ExtractionResultsScreenState extends State<ExtractionResultsScreen>
                 ),
               ),
               const SizedBox(height: 8),
-              const Text(
+              Text(
                 'You can also set this later in Profile → Settings.',
                 style: TextStyle(
-                    fontSize: 11, color: AppConstants.textLightGray),
+                    fontSize: 11, color: Theme.of(context).colorScheme.outline),
               ),
             ],
           ),
@@ -649,7 +649,6 @@ class _ExtractionResultsScreenState extends State<ExtractionResultsScreen>
         }
       },
       child: Scaffold(
-        backgroundColor: const Color(0xFFF8F9FA),
         appBar: _buildAppBar(),
         body: _isExtracting
             ? _buildLoadingState()
@@ -664,8 +663,6 @@ class _ExtractionResultsScreenState extends State<ExtractionResultsScreen>
 
   PreferredSizeWidget _buildAppBar() {
     return AppBar(
-      backgroundColor: AppConstants.backgroundColor,
-      foregroundColor: AppConstants.textDark,
       title: const Text(
         'Extracted Details',
         style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
@@ -715,20 +712,20 @@ class _ExtractionResultsScreenState extends State<ExtractionResultsScreen>
               ),
             ),
             const SizedBox(height: AppConstants.paddingLarge),
-            const Text(
+            Text(
               'Extracting receipt details…',
               style: TextStyle(
                 fontSize: 17,
                 fontWeight: FontWeight.w600,
-                color: AppConstants.textDark,
+                color: Theme.of(context).colorScheme.onSurface,
               ),
             ),
             const SizedBox(height: AppConstants.paddingSmall),
-            const Text(
+            Text(
               'This may take a few seconds',
               style: TextStyle(
                 fontSize: 13,
-                color: AppConstants.textMediumGray,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
             const SizedBox(height: AppConstants.paddingXLarge),
@@ -759,7 +756,7 @@ class _ExtractionResultsScreenState extends State<ExtractionResultsScreen>
         child: Container(
           height: 56,
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: Theme.of(context).colorScheme.surface,
             borderRadius:
                 BorderRadius.circular(AppConstants.borderRadiusSmall),
             border: Border.all(color: const Color(0xFFE0E0E0)),
@@ -807,21 +804,21 @@ class _ExtractionResultsScreenState extends State<ExtractionResultsScreen>
               color: AppConstants.errorRed.withValues(alpha: 0.7),
             ),
             const SizedBox(height: AppConstants.paddingLarge),
-            const Text(
+            Text(
               'Extraction Failed',
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
-                color: AppConstants.textDark,
+                color: Theme.of(context).colorScheme.onSurface,
               ),
             ),
             const SizedBox(height: AppConstants.paddingSmall),
             Text(
               _lastError ?? 'Could not extract receipt data.\nCheck your AI backend settings and try again.',
               textAlign: TextAlign.center,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
-                color: AppConstants.textMediumGray,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
                 height: 1.5,
               ),
             ),
@@ -839,7 +836,7 @@ class _ExtractionResultsScreenState extends State<ExtractionResultsScreen>
             OutlinedButton(
               onPressed: () => Navigator.of(context).pop(),
               style: OutlinedButton.styleFrom(
-                foregroundColor: AppConstants.textMediumGray,
+                foregroundColor: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
               child: const Text('Go Back'),
             ),
@@ -932,9 +929,9 @@ class _ExtractionResultsScreenState extends State<ExtractionResultsScreen>
               errorBuilder: (_, e, s) => Container(
                 height: 80,
                 color: const Color(0xFFF5F5F5),
-                child: const Center(
+                child: Center(
                   child: Icon(Icons.broken_image_outlined,
-                      color: AppConstants.textLightGray, size: 32),
+                      color: Theme.of(context).colorScheme.outline, size: 32),
                 ),
               ),
             ),
@@ -1125,7 +1122,7 @@ class _ExtractionResultsScreenState extends State<ExtractionResultsScreen>
     return Container(
       margin: const EdgeInsets.only(bottom: AppConstants.paddingSmall),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius:
             BorderRadius.circular(AppConstants.borderRadiusSmall),
         boxShadow: [
@@ -1148,12 +1145,12 @@ class _ExtractionResultsScreenState extends State<ExtractionResultsScreen>
               padding: const EdgeInsets.all(12),
               child: Row(
                 children: [
-                  const Text(
+                  Text(
                     'Items',
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
-                      color: AppConstants.textDark,
+                      color: Theme.of(context).colorScheme.onSurface,
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -1178,8 +1175,8 @@ class _ExtractionResultsScreenState extends State<ExtractionResultsScreen>
                   AnimatedRotation(
                     turns: _itemsExpanded ? 0.5 : 0,
                     duration: const Duration(milliseconds: 200),
-                    child: const Icon(Icons.expand_more,
-                        color: AppConstants.textMediumGray),
+                    child: Icon(Icons.expand_more,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant),
                   ),
                 ],
               ),
@@ -1213,7 +1210,7 @@ class _ExtractionResultsScreenState extends State<ExtractionResultsScreen>
               style: TextStyle(
                 fontSize: 12,
                 fontStyle: FontStyle.italic,
-                color: AppConstants.textMediumGray,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
             const SizedBox(height: 8),
@@ -1262,19 +1259,19 @@ class _ExtractionResultsScreenState extends State<ExtractionResultsScreen>
                           children: [
                             Text(
                               item.name,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,
-                                color: AppConstants.textDark,
+                                color: Theme.of(context).colorScheme.onSurface,
                               ),
                             ),
                             const SizedBox(height: 2),
                             Text(
                               '${item.quantity > 1 ? '${item.quantity.toStringAsFixed(item.quantity.truncateToDouble() == item.quantity ? 0 : 1)} × ' : ''}'
                               '${CurrencyService.instance.format(item.unitPrice)}',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 12,
-                                color: AppConstants.textMediumGray,
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
                               ),
                             ),
                           ],
@@ -1287,10 +1284,10 @@ class _ExtractionResultsScreenState extends State<ExtractionResultsScreen>
                         children: [
                           Text(
                             CurrencyService.instance.format(item.subtotal),
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
-                              color: AppConstants.textDark,
+                              color: Theme.of(context).colorScheme.onSurface,
                             ),
                           ),
                           const SizedBox(height: 4),
@@ -1350,7 +1347,7 @@ class _ExtractionResultsScreenState extends State<ExtractionResultsScreen>
               ),
               Icon(
                 Icons.chevron_right,
-                color: AppConstants.textMediumGray.withValues(alpha: 0.5),
+                color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
                 size: 20,
               ),
             ],
@@ -1378,17 +1375,17 @@ class _ExtractionResultsScreenState extends State<ExtractionResultsScreen>
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: AppConstants.textLightGray,
+                    color: Theme.of(context).colorScheme.outline,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
                 const SizedBox(height: AppConstants.paddingMedium),
-                const Text(
+                Text(
                   'Select Category',
                   style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: AppConstants.textDark),
+                      color: Theme.of(context).colorScheme.onSurface),
                 ),
                 const SizedBox(height: AppConstants.paddingMedium),
                 ...AppConstants.expenseCategories.map((cat) {
@@ -1413,7 +1410,7 @@ class _ExtractionResultsScreenState extends State<ExtractionResultsScreen>
                             : FontWeight.w500,
                         color: isSelected
                             ? AppConstants.primaryGreen
-                            : AppConstants.textDark,
+                            : Theme.of(context).colorScheme.onSurface,
                       ),
                     ),
                     trailing: isSelected
@@ -1462,7 +1459,7 @@ class _ExtractionResultsScreenState extends State<ExtractionResultsScreen>
                   isSelected ? FontWeight.w600 : FontWeight.w400,
               color: isSelected
                   ? AppConstants.primaryGreen
-                  : AppConstants.textDark,
+                  : Theme.of(context).colorScheme.onSurface,
             ),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(
@@ -1497,7 +1494,7 @@ class _ExtractionResultsScreenState extends State<ExtractionResultsScreen>
       margin: const EdgeInsets.only(bottom: AppConstants.paddingSmall),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius:
             BorderRadius.circular(AppConstants.borderRadiusSmall),
         border: (isRequired && isEmpty)
@@ -1519,10 +1516,10 @@ class _ExtractionResultsScreenState extends State<ExtractionResultsScreen>
             children: [
               Text(
                 label,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.bold,
-                  color: AppConstants.textDark,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
               if (isRequired) ...[
@@ -1572,10 +1569,10 @@ class _ExtractionResultsScreenState extends State<ExtractionResultsScreen>
                   fontSize: isAmount ? 18 : 16,
                   fontWeight: isAmount ? FontWeight.bold : FontWeight.normal,
                   color: isPlaceholder
-                      ? AppConstants.textMediumGray
+                      ? Theme.of(context).colorScheme.onSurfaceVariant
                       : isAmount
                           ? AppConstants.primaryGreen
-                          : AppConstants.textDark,
+                          : Theme.of(context).colorScheme.onSurface,
                   fontStyle:
                       isPlaceholder ? FontStyle.italic : FontStyle.normal,
                 ),
@@ -1584,7 +1581,7 @@ class _ExtractionResultsScreenState extends State<ExtractionResultsScreen>
             Icon(
               Icons.edit_outlined,
               size: 20,
-              color: AppConstants.textMediumGray.withValues(alpha: 0.6),
+              color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
             ),
           ],
         ),
@@ -1607,13 +1604,13 @@ class _ExtractionResultsScreenState extends State<ExtractionResultsScreen>
             controller: controller,
             keyboardType: keyboardType,
             autofocus: true,
-            style: const TextStyle(fontSize: 16, color: AppConstants.textDark),
+            style: TextStyle(fontSize: 16, color: Theme.of(context).colorScheme.onSurface),
             decoration: InputDecoration(
               isDense: true,
               contentPadding:
                   const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               filled: true,
-              fillColor: Colors.white,
+              fillColor: Theme.of(context).colorScheme.surface,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(
                     AppConstants.borderRadiusSmall),
@@ -1747,7 +1744,7 @@ class _ExtractionResultsScreenState extends State<ExtractionResultsScreen>
         AppConstants.paddingMedium + MediaQuery.of(context).padding.bottom,
       ),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.06),

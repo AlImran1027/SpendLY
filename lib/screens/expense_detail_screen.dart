@@ -301,22 +301,22 @@ class _ExpenseDetailScreenState extends State<ExpenseDetailScreen>
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppConstants.borderRadiusMedium),
         ),
-        title: const Text(
+        title: Text(
           'Delete Expense?',
           style: TextStyle(
             fontWeight: FontWeight.bold,
-            color: AppConstants.textDark,
+            color: Theme.of(context).colorScheme.onSurface,
           ),
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'This action cannot be undone.',
               style: TextStyle(
                 fontSize: 14,
-                color: AppConstants.textMediumGray,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
             const SizedBox(height: 12),
@@ -335,10 +335,10 @@ class _ExpenseDetailScreenState extends State<ExpenseDetailScreen>
                   Expanded(
                     child: Text(
                       '$merchant — $amount on $date',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
-                        color: AppConstants.textDark,
+                        color: Theme.of(context).colorScheme.onSurface,
                       ),
                     ),
                   ),
@@ -350,9 +350,9 @@ class _ExpenseDetailScreenState extends State<ExpenseDetailScreen>
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text(
+            child: Text(
               'Cancel',
-              style: TextStyle(color: AppConstants.textMediumGray),
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
             ),
           ),
           ElevatedButton(
@@ -419,21 +419,19 @@ class _ExpenseDetailScreenState extends State<ExpenseDetailScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAF8),
       appBar: AppBar(
-        backgroundColor: AppConstants.backgroundColor,
         elevation: 0,
         centerTitle: true,
         leading: IconButton( // Back button to return to the previous screen
           icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20), // Use a smaller back arrow icon
           onPressed: () => Navigator.pop(context), // Navigate back when pressed
         ),
-        title: const Text(
+        title: Text(
           'Expense Details',
           style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.bold,
-            color: AppConstants.textDark,
+            color: Theme.of(context).colorScheme.onSurface,
           ),
         ),
         actions: [
@@ -471,7 +469,7 @@ class _ExpenseDetailScreenState extends State<ExpenseDetailScreen>
                     width: double.infinity,
                     height: i == 1 ? 100 : 80,
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: Theme.of(context).colorScheme.surface,
                       borderRadius: BorderRadius.circular(
                           AppConstants.borderRadiusMedium),
                       boxShadow: [
@@ -602,17 +600,17 @@ class _ExpenseDetailScreenState extends State<ExpenseDetailScreen>
                     height: 260,
                   ),
                 )
-              : const Column(
+              : Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Icon(Icons.receipt_long_outlined,
-                        size: 56, color: AppConstants.textLightGray),
-                    SizedBox(height: 12),
+                        size: 56, color: Theme.of(context).colorScheme.outline),
+                    const SizedBox(height: 12),
                     Text(
                       'No receipt image available',
                       style: TextStyle(
                         fontSize: 14,
-                        color: AppConstants.textMediumGray,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
                   ],
@@ -632,7 +630,7 @@ class _ExpenseDetailScreenState extends State<ExpenseDetailScreen>
       margin: const EdgeInsets.symmetric(horizontal: 8),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(AppConstants.borderRadiusMedium),
         boxShadow: [
           BoxShadow(
@@ -648,10 +646,10 @@ class _ExpenseDetailScreenState extends State<ExpenseDetailScreen>
           // Merchant name
           Text(
             data.merchantName.isNotEmpty ? data.merchantName : 'Unknown Merchant',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.w800,
-              color: AppConstants.textDark,
+              color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
           const SizedBox(height: 8),
@@ -684,9 +682,9 @@ class _ExpenseDetailScreenState extends State<ExpenseDetailScreen>
           // Date display
           Text(
             _formatFullDate(data.date),
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 14,
-              color: AppConstants.textMediumGray,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
 
@@ -704,9 +702,9 @@ class _ExpenseDetailScreenState extends State<ExpenseDetailScreen>
               const SizedBox(width: 6),
               Text(
                 data.paymentMethod,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
-                  color: AppConstants.textMediumGray,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
             ],
@@ -824,14 +822,14 @@ class _ExpenseDetailScreenState extends State<ExpenseDetailScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Padding(
-            padding: EdgeInsets.only(left: 4, bottom: 8),
+          Padding(
+            padding: const EdgeInsets.only(left: 4, bottom: 8),
             child: Text(
               'Items',
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.bold,
-                color: AppConstants.textDark,
+                color: Theme.of(context).colorScheme.onSurface,
               ),
             ),
           ),
@@ -839,7 +837,7 @@ class _ExpenseDetailScreenState extends State<ExpenseDetailScreen>
             width: double.infinity,
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: Theme.of(context).colorScheme.surface,
               borderRadius:
                   BorderRadius.circular(AppConstants.borderRadiusMedium),
               boxShadow: [
@@ -851,14 +849,14 @@ class _ExpenseDetailScreenState extends State<ExpenseDetailScreen>
               ],
             ),
             child: items.isEmpty
-                ? const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 16),
+                ? Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
                     child: Text(
                       'No items recorded. Total amount saved as single entry.',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 13,
-                        color: AppConstants.textMediumGray,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                         fontStyle: FontStyle.italic,
                       ),
                     ),
@@ -890,18 +888,18 @@ class _ExpenseDetailScreenState extends State<ExpenseDetailScreen>
               children: [
                 Text(
                   item.name,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: AppConstants.textDark,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   '${_fmtQty(item.quantity)} × ${_formatCurrency(item.unitPrice)}',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
-                    color: AppConstants.textMediumGray,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
               ],
@@ -909,10 +907,10 @@ class _ExpenseDetailScreenState extends State<ExpenseDetailScreen>
           ),
           Text(
             _formatCurrency(item.subtotal),
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w600,
-              color: AppConstants.textDark,
+              color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
         ],
@@ -938,14 +936,14 @@ class _ExpenseDetailScreenState extends State<ExpenseDetailScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Padding(
-            padding: EdgeInsets.only(left: 4, bottom: 8),
+          Padding(
+            padding: const EdgeInsets.only(left: 4, bottom: 8),
             child: Text(
               'Additional Details',
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.bold,
-                color: AppConstants.textDark,
+                color: Theme.of(context).colorScheme.onSurface,
               ),
             ),
           ),
@@ -953,7 +951,7 @@ class _ExpenseDetailScreenState extends State<ExpenseDetailScreen>
             width: double.infinity,
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: Theme.of(context).colorScheme.surface,
               borderRadius:
                   BorderRadius.circular(AppConstants.borderRadiusMedium),
               boxShadow: [
@@ -997,10 +995,10 @@ class _ExpenseDetailScreenState extends State<ExpenseDetailScreen>
                   label: 'Payment Method',
                   trailing: Text(
                     data.paymentMethod,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
-                      color: AppConstants.textDark,
+                      color: Theme.of(context).colorScheme.onSurface,
                     ),
                   ),
                 ),
@@ -1013,16 +1011,16 @@ class _ExpenseDetailScreenState extends State<ExpenseDetailScreen>
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Row(
+                        Row(
                           children: [
                             Icon(Icons.notes_outlined,
-                                size: 20, color: AppConstants.textMediumGray),
-                            SizedBox(width: 8),
+                                size: 20, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                            const SizedBox(width: 8),
                             Text(
                               'Notes',
                               style: TextStyle(
                                 fontSize: 14,
-                                color: AppConstants.textMediumGray,
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
                               ),
                             ),
                           ],
@@ -1037,9 +1035,9 @@ class _ExpenseDetailScreenState extends State<ExpenseDetailScreen>
                           ),
                           child: Text(
                             _notes!,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 13,
-                              color: AppConstants.textDark,
+                              color: Theme.of(context).colorScheme.onSurface,
                               height: 1.4,
                             ),
                           ),
@@ -1102,9 +1100,9 @@ class _ExpenseDetailScreenState extends State<ExpenseDetailScreen>
           const SizedBox(width: 8),
           Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 14,
-              color: AppConstants.textMediumGray,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
           const Spacer(),
@@ -1122,14 +1120,14 @@ class _ExpenseDetailScreenState extends State<ExpenseDetailScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Padding(
-            padding: EdgeInsets.only(left: 4, bottom: 8),
+          Padding(
+            padding: const EdgeInsets.only(left: 4, bottom: 8),
             child: Text(
               'Timestamps',
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.bold,
-                color: AppConstants.textMediumGray,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
           ),
@@ -1137,7 +1135,7 @@ class _ExpenseDetailScreenState extends State<ExpenseDetailScreen>
             width: double.infinity,
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: Theme.of(context).colorScheme.surface,
               borderRadius:
                   BorderRadius.circular(AppConstants.borderRadiusMedium),
               border: const Border(
@@ -1171,21 +1169,21 @@ class _ExpenseDetailScreenState extends State<ExpenseDetailScreen>
   Widget _timestampRow(IconData icon, String label, String value) {
     return Row(
       children: [
-        Icon(icon, size: 16, color: AppConstants.textLightGray),
+        Icon(icon, size: 16, color: Theme.of(context).colorScheme.outline),
         const SizedBox(width: 8),
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 12,
-            color: AppConstants.textLightGray,
+            color: Theme.of(context).colorScheme.outline,
           ),
         ),
         const Spacer(),
         Text(
           value,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 12,
-            color: AppConstants.textMediumGray,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
         ),
       ],

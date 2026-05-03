@@ -348,17 +348,17 @@ class _ExpenseEntryScreenState extends State<ExpenseEntryScreen>
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: AppConstants.textLightGray,
+                    color: Theme.of(context).colorScheme.outline,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
                 const SizedBox(height: AppConstants.paddingMedium),
-                const Text(
+                Text(
                   'Select Category',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: AppConstants.textDark,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
                 const SizedBox(height: AppConstants.paddingMedium),
@@ -382,7 +382,7 @@ class _ExpenseEntryScreenState extends State<ExpenseEntryScreen>
                             selected ? FontWeight.w700 : FontWeight.w500,
                         color: selected
                             ? AppConstants.primaryGreen
-                            : AppConstants.textDark,
+                            : Theme.of(context).colorScheme.onSurface,
                       ),
                     ),
                     trailing: selected
@@ -596,7 +596,6 @@ class _ExpenseEntryScreenState extends State<ExpenseEntryScreen>
         if (shouldPop && context.mounted) Navigator.of(context).pop();
       },
       child: Scaffold(
-        backgroundColor: const Color(0xFFF8F9FA),
         appBar: _buildAppBar(),
         body: Form(
           key: _formKey,
@@ -670,8 +669,6 @@ class _ExpenseEntryScreenState extends State<ExpenseEntryScreen>
 
   PreferredSizeWidget _buildAppBar() {
     return AppBar(
-      backgroundColor: AppConstants.backgroundColor,
-      foregroundColor: AppConstants.textDark,
       title: Text(
         _isEditMode ? 'Edit Expense' : 'Add Expense',
         style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
@@ -888,7 +885,7 @@ class _ExpenseEntryScreenState extends State<ExpenseEntryScreen>
                     ),
                   ),
                   Icon(Icons.arrow_drop_down,
-                      color: AppConstants.textMediumGray.withValues(alpha: 0.6)),
+                      color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.6)),
                 ],
               ),
             ),
@@ -907,7 +904,7 @@ class _ExpenseEntryScreenState extends State<ExpenseEntryScreen>
       margin: const EdgeInsets.only(bottom: AppConstants.paddingMedium),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius:
             BorderRadius.circular(AppConstants.borderRadiusSmall),
         boxShadow: [
@@ -977,10 +974,10 @@ class _ExpenseEntryScreenState extends State<ExpenseEntryScreen>
               children: [
                 Text(
                   'Item ${index + 1}',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
-                    color: AppConstants.textMediumGray,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
                 const Spacer(),
@@ -1126,7 +1123,7 @@ class _ExpenseEntryScreenState extends State<ExpenseEntryScreen>
                         size: 18,
                         color: selected
                             ? AppConstants.primaryGreen
-                            : AppConstants.textMediumGray),
+                            : Theme.of(context).colorScheme.onSurfaceVariant),
                     const SizedBox(width: 6),
                     Text(e.key),
                   ],
@@ -1146,7 +1143,7 @@ class _ExpenseEntryScreenState extends State<ExpenseEntryScreen>
                       selected ? FontWeight.w600 : FontWeight.w400,
                   color: selected
                       ? AppConstants.primaryGreen
-                      : AppConstants.textDark,
+                      : Theme.of(context).colorScheme.onSurface,
                 ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(
@@ -1179,11 +1176,11 @@ class _ExpenseEntryScreenState extends State<ExpenseEntryScreen>
             children: [
               _label('Notes'),
               const SizedBox(width: 6),
-              const Text(
+              Text(
                 '(Optional)',
                 style: TextStyle(
                   fontSize: 12,
-                  color: AppConstants.textLightGray,
+                  color: Theme.of(context).colorScheme.outline,
                 ),
               ),
             ],
@@ -1200,9 +1197,9 @@ class _ExpenseEntryScreenState extends State<ExpenseEntryScreen>
               hint: 'Add any additional details, special notes, etc.',
               icon: Icons.note_outlined,
             ).copyWith(
-              counterStyle: const TextStyle(
+              counterStyle: TextStyle(
                 fontSize: 10,
-                color: AppConstants.textLightGray,
+                color: Theme.of(context).colorScheme.outline,
               ),
             ),
           ),
@@ -1234,12 +1231,12 @@ class _ExpenseEntryScreenState extends State<ExpenseEntryScreen>
       ),
       child: Row(
         children: [
-          const Text(
+          Text(
             'Total Amount',
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.bold,
-              color: AppConstants.textDark,
+              color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
           const Spacer(),
@@ -1287,11 +1284,11 @@ class _ExpenseEntryScreenState extends State<ExpenseEntryScreen>
         children: [
           const Icon(Icons.call_split, color: Color(0xFFE65100), size: 22),
           const SizedBox(width: 10),
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
+                const Text(
                   'Split this bill?',
                   style: TextStyle(
                     fontSize: 14,
@@ -1299,12 +1296,12 @@ class _ExpenseEntryScreenState extends State<ExpenseEntryScreen>
                     color: Color(0xFFE65100),
                   ),
                 ),
-                SizedBox(height: 2),
+                const SizedBox(height: 2),
                 Text(
                   'Share this expense with other Spendly users',
                   style: TextStyle(
                     fontSize: 12,
-                    color: AppConstants.textMediumGray,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
               ],
@@ -1376,7 +1373,7 @@ class _ExpenseEntryScreenState extends State<ExpenseEntryScreen>
         AppConstants.paddingMedium + MediaQuery.of(context).padding.bottom,
       ),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.06),
@@ -1397,7 +1394,7 @@ class _ExpenseEntryScreenState extends State<ExpenseEntryScreen>
                       if (shouldPop && mounted) Navigator.of(context).pop();
                     },
               style: OutlinedButton.styleFrom(
-                foregroundColor: AppConstants.textDark,
+                foregroundColor: Theme.of(context).colorScheme.onSurface,
                 side: const BorderSide(color: Color(0xFFE0E0E0), width: 1.5),
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(
@@ -1452,14 +1449,14 @@ class _ExpenseEntryScreenState extends State<ExpenseEntryScreen>
   // SHARED HELPERS
   // ═══════════════════════════════════════════════════════════════════════════
 
-  /// Wraps a form section in a white card with shadow.
+  /// Wraps a form section in a surface card with shadow.
   Widget _fieldWrapper({required Widget child}) {
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.only(bottom: AppConstants.paddingMedium),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius:
             BorderRadius.circular(AppConstants.borderRadiusSmall),
         boxShadow: [
@@ -1481,10 +1478,10 @@ class _ExpenseEntryScreenState extends State<ExpenseEntryScreen>
       children: [
         Text(
           text,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.bold,
-            color: AppConstants.textDark,
+            color: Theme.of(context).colorScheme.onSurface,
           ),
         ),
         if (required) ...[
@@ -1508,16 +1505,16 @@ class _ExpenseEntryScreenState extends State<ExpenseEntryScreen>
   }) {
     return InputDecoration(
       hintText: hint,
-      hintStyle: const TextStyle(
-        color: AppConstants.textLightGray,
+      hintStyle: TextStyle(
+        color: Theme.of(context).colorScheme.outline,
         fontSize: 14,
       ),
       prefixIcon: Icon(icon, color: AppConstants.primaryGreen, size: 22),
       suffixIcon: suffixIcon != null
-          ? Icon(suffixIcon, color: AppConstants.textMediumGray)
+          ? Icon(suffixIcon, color: Theme.of(context).colorScheme.onSurfaceVariant)
           : null,
       filled: true,
-      fillColor: Colors.white,
+      fillColor: Theme.of(context).colorScheme.surface,
       isDense: dense,
       contentPadding:
           const EdgeInsets.symmetric(horizontal: 12, vertical: 14),

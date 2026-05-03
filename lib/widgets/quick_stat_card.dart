@@ -33,7 +33,7 @@ class QuickStatCard extends StatelessWidget {
         width: 148,
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Theme.of(context).colorScheme.surface,
           borderRadius:
               BorderRadius.circular(AppConstants.borderRadiusMedium),
           boxShadow: [
@@ -64,10 +64,10 @@ class QuickStatCard extends StatelessWidget {
             // ── Value ──
             Text(
               value,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.w800,
-                color: AppConstants.textDark,
+                color: Theme.of(context).colorScheme.onSurface,
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -78,9 +78,9 @@ class QuickStatCard extends StatelessWidget {
             // ── Label ──
             Text(
               label,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
-                color: AppConstants.textMediumGray,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,

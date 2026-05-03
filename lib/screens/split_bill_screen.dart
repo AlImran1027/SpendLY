@@ -258,7 +258,6 @@ class _SplitBillScreenState extends State<SplitBillScreen> {
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
       appBar: _buildAppBar(),
       body: Column(
         children: [
@@ -296,8 +295,6 @@ class _SplitBillScreenState extends State<SplitBillScreen> {
 
   PreferredSizeWidget _buildAppBar() {
     return AppBar(
-      backgroundColor: AppConstants.backgroundColor,
-      foregroundColor: AppConstants.textDark,
       title: const Text(
         'Split Bill',
         style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
@@ -386,7 +383,7 @@ class _SplitBillScreenState extends State<SplitBillScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(AppConstants.borderRadiusSmall),
         border: Border.all(color: const Color(0xFFE0E0E0)),
         boxShadow: [
@@ -402,13 +399,13 @@ class _SplitBillScreenState extends State<SplitBillScreen> {
           const Icon(Icons.call_split,
               size: 20, color: AppConstants.primaryGreen),
           const SizedBox(width: 10),
-          const Expanded(
+          Expanded(
             child: Text(
               'Split how many ways?',
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: AppConstants.textDark,
+                color: Theme.of(context).colorScheme.onSurface,
               ),
             ),
           ),
@@ -454,7 +451,7 @@ class _SplitBillScreenState extends State<SplitBillScreen> {
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(AppConstants.borderRadiusSmall),
         border: Border.all(
           color: _emailFocus.hasFocus
@@ -478,12 +475,12 @@ class _SplitBillScreenState extends State<SplitBillScreen> {
             padding: const EdgeInsets.fromLTRB(12, 10, 12, 0),
             child: Row(
               children: [
-                const Text(
+                Text(
                   'To:',
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: AppConstants.textMediumGray,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
                 const SizedBox(width: 4),
@@ -496,7 +493,7 @@ class _SplitBillScreenState extends State<SplitBillScreen> {
                       fontSize: 12,
                       color: isFull
                           ? AppConstants.primaryGreen
-                          : AppConstants.textLightGray,
+                          : Theme.of(context).colorScheme.outline,
                       fontWeight:
                           isFull ? FontWeight.w600 : FontWeight.normal,
                     ),
@@ -537,8 +534,8 @@ class _SplitBillScreenState extends State<SplitBillScreen> {
               style: const TextStyle(fontSize: 14),
               decoration: InputDecoration(
                 hintText: 'Type email address...',
-                hintStyle: const TextStyle(
-                  color: AppConstants.textLightGray,
+                hintStyle: TextStyle(
+                  color: Theme.of(context).colorScheme.outline,
                   fontSize: 14,
                 ),
                 prefixIcon: const Icon(
@@ -628,13 +625,13 @@ class _SplitBillScreenState extends State<SplitBillScreen> {
       margin: const EdgeInsets.only(top: 4),
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(AppConstants.borderRadiusSmall),
         border: Border.all(color: const Color(0xFFE0E0E0)),
       ),
-      child: const Row(
+      child: Row(
         children: [
-          SizedBox(
+          const SizedBox(
             width: 16,
             height: 16,
             child: CircularProgressIndicator(
@@ -642,12 +639,12 @@ class _SplitBillScreenState extends State<SplitBillScreen> {
               color: AppConstants.primaryGreen,
             ),
           ),
-          SizedBox(width: 10),
+          const SizedBox(width: 10),
           Text(
             'Searching...',
             style: TextStyle(
               fontSize: 13,
-              color: AppConstants.textMediumGray,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
         ],
@@ -659,7 +656,7 @@ class _SplitBillScreenState extends State<SplitBillScreen> {
     return Container(
       margin: const EdgeInsets.only(top: 4),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(AppConstants.borderRadiusSmall),
         border: Border.all(color: const Color(0xFFE0E0E0)),
         boxShadow: [
@@ -720,10 +717,10 @@ class _SplitBillScreenState extends State<SplitBillScreen> {
                             if (user.displayName.isNotEmpty)
                               Text(
                                 user.displayName,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
-                                  color: AppConstants.textDark,
+                                  color: Theme.of(context).colorScheme.onSurface,
                                 ),
                               ),
                             Text(
@@ -732,8 +729,8 @@ class _SplitBillScreenState extends State<SplitBillScreen> {
                                 fontSize:
                                     user.displayName.isNotEmpty ? 12 : 14,
                                 color: user.displayName.isNotEmpty
-                                    ? AppConstants.textMediumGray
-                                    : AppConstants.textDark,
+                                    ? Theme.of(context).colorScheme.onSurfaceVariant
+                                    : Theme.of(context).colorScheme.onSurface,
                               ),
                             ),
                           ],
@@ -766,15 +763,15 @@ class _SplitBillScreenState extends State<SplitBillScreen> {
       padding: const EdgeInsets.only(top: 6, left: 4),
       child: Row(
         children: [
-          const Icon(Icons.info_outline,
-              size: 14, color: AppConstants.textMediumGray),
+          Icon(Icons.info_outline,
+              size: 14, color: Theme.of(context).colorScheme.onSurfaceVariant),
           const SizedBox(width: 4),
           Expanded(
             child: Text(
               _searchError!,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
-                color: AppConstants.textMediumGray,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
           ),
@@ -796,7 +793,7 @@ class _SplitBillScreenState extends State<SplitBillScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(AppConstants.borderRadiusSmall),
         border: Border.all(
           color: AppConstants.primaryGreen.withValues(alpha: 0.3),
@@ -819,10 +816,10 @@ class _SplitBillScreenState extends State<SplitBillScreen> {
               const SizedBox(width: 8),
               Text(
                 'Split $_splitCount ways',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w700,
-                  color: AppConstants.textDark,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
             ],
@@ -830,9 +827,9 @@ class _SplitBillScreenState extends State<SplitBillScreen> {
           const SizedBox(height: 6),
           Text(
             names.join(' · '),
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 13,
-              color: AppConstants.textMediumGray,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
           const SizedBox(height: 12),
@@ -840,11 +837,11 @@ class _SplitBillScreenState extends State<SplitBillScreen> {
           const SizedBox(height: 12),
           Row(
             children: [
-              const Text(
+              Text(
                 'Each person pays',
                 style: TextStyle(
                   fontSize: 14,
-                  color: AppConstants.textDark,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
               const Spacer(),
@@ -875,7 +872,7 @@ class _SplitBillScreenState extends State<SplitBillScreen> {
         AppConstants.paddingMedium + MediaQuery.of(context).padding.bottom,
       ),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.06),
@@ -891,7 +888,7 @@ class _SplitBillScreenState extends State<SplitBillScreen> {
               onPressed:
                   _isSending ? null : () => Navigator.of(context).pop(),
               style: OutlinedButton.styleFrom(
-                foregroundColor: AppConstants.textDark,
+                foregroundColor: Theme.of(context).colorScheme.onSurface,
                 side:
                     const BorderSide(color: Color(0xFFE0E0E0), width: 1.5),
                 padding: const EdgeInsets.symmetric(vertical: 16),
@@ -975,7 +972,7 @@ class _StepperButton extends StatelessWidget {
           size: 18,
           color: enabled
               ? AppConstants.primaryGreen
-              : AppConstants.textLightGray,
+              : Theme.of(context).colorScheme.outline,
         ),
       ),
     );

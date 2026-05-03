@@ -177,7 +177,6 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAF8),
       body: SafeArea(
         child: _isLoading
             ? const Center(
@@ -207,17 +206,16 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
 
   Widget _buildAppBar() {
     return SliverAppBar(
-      backgroundColor: const Color(0xFFF8FAF8),
       elevation: 0,
       floating: true,
       snap: true,
       titleSpacing: AppConstants.paddingLarge,
-      title: const Text(
+      title: Text(
         'Expenses',
         style: TextStyle(
           fontSize: 26,
           fontWeight: FontWeight.w800,
-          color: AppConstants.textDark,
+          color: Theme.of(context).colorScheme.onSurface,
         ),
       ),
       actions: [
@@ -225,7 +223,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
           padding: const EdgeInsets.only(right: AppConstants.paddingMedium),
           child: Container(
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: Theme.of(context).colorScheme.surface,
               borderRadius: BorderRadius.circular(AppConstants.borderRadiusMedium),
               boxShadow: [
                 BoxShadow(
@@ -236,7 +234,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
               ],
             ),
             child: IconButton(
-              icon: const Icon(Icons.tune_outlined, color: AppConstants.textDark),
+              icon: Icon(Icons.tune_outlined, color: Theme.of(context).colorScheme.onSurface),
               tooltip: 'Filter',
               onPressed: _showFilterSheet,
             ),
@@ -334,14 +332,14 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
         controller: _searchController,
         focusNode: _searchFocus,
         onChanged: (v) => setState(() => _searchQuery = v), // Update search query on every change
-        style: const TextStyle(fontSize: 14, color: AppConstants.textDark),
+        style: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.onSurface),
         decoration: InputDecoration(
           hintText: 'Search expenses…',
-          hintStyle: const TextStyle(color: AppConstants.textLightGray),
-          prefixIcon: const Icon(Icons.search, color: AppConstants.textMediumGray, size: 20),
+          hintStyle: TextStyle(color: Theme.of(context).colorScheme.outline),
+          prefixIcon: Icon(Icons.search, color: Theme.of(context).colorScheme.onSurfaceVariant, size: 20),
           suffixIcon: _searchQuery.isNotEmpty
               ? IconButton(
-                  icon: const Icon(Icons.close, size: 18, color: AppConstants.textMediumGray), // Clear button appears only when there's text in the search field
+                  icon: Icon(Icons.close, size: 18, color: Theme.of(context).colorScheme.onSurfaceVariant), // Clear button appears only when there's text in the search field
                   onPressed: () {
                     _searchController.clear(); // Clear the text field
                     setState(() => _searchQuery = '');
@@ -350,7 +348,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                 )
               : null,
           filled: true,
-          fillColor: Colors.white,
+          fillColor: Theme.of(context).colorScheme.surface,
           contentPadding: const EdgeInsets.symmetric(vertical: 12),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(AppConstants.borderRadiusMedium),
@@ -393,7 +391,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
               duration: const Duration(milliseconds: 200),
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
               decoration: BoxDecoration(
-                color: selected ? AppConstants.primaryGreen : Colors.white, // Highlight selected category
+                color: selected ? AppConstants.primaryGreen : Theme.of(context).colorScheme.surface,
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
                   color: selected
@@ -415,7 +413,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
-                  color: selected ? Colors.white : AppConstants.textMediumGray,
+                  color: selected ? Colors.white : Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
             ),
@@ -445,9 +443,9 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
         children: [
           Text(
             '${filtered.length} result${filtered.length == 1 ? '' : 's'}', // Shows how many expenses match the current filters
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 13,
-              color: AppConstants.textMediumGray,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
           const Spacer(),
@@ -515,20 +513,20 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                   children: [
                     Text(
                       bucket,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
-                        color: AppConstants.textMediumGray,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                         letterSpacing: 0.4,
                       ),
                     ),
                     const Spacer(),
                     Text(
                       CurrencyService.instance.format(items.fold(0.0, (s, e) => s + e.totalAmount)),
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
-                        color: AppConstants.textMediumGray,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
                   ],
@@ -537,7 +535,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                 // Card containing the tiles for this bucket
                 Container(
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: Theme.of(context).colorScheme.surface,
                     borderRadius:
                         BorderRadius.circular(AppConstants.borderRadiusMedium),
                     boxShadow: [
@@ -611,10 +609,10 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
             const SizedBox(height: AppConstants.paddingLarge),
             Text(
               isFiltered ? 'No Results Found' : 'No Expenses Yet',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.w700,
-                color: AppConstants.textDark,
+                color: Theme.of(context).colorScheme.onSurface,
               ),
             ),
             const SizedBox(height: AppConstants.paddingSmall),
@@ -623,9 +621,9 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                   ? 'Try a different search term\nor change the category filter.'
                   : 'Tap the camera button below to scan\nyour first receipt and start tracking!',
               textAlign: TextAlign.center,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
-                color: AppConstants.textMediumGray,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
                 height: 1.5,
               ),
             ),
@@ -723,7 +721,7 @@ class _SortChip extends StatelessWidget {
                 fontWeight: FontWeight.w500,
                 color: active
                     ? AppConstants.primaryGreen
-                    : AppConstants.textMediumGray,
+                    : Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
             const SizedBox(width: 2),
@@ -736,7 +734,7 @@ class _SortChip extends StatelessWidget {
               size: 14,
               color: active
                   ? AppConstants.primaryGreen
-                  : AppConstants.textLightGray,
+                  : Theme.of(context).colorScheme.outline,
             ),
           ],
         ),
@@ -780,9 +778,9 @@ class _FilterSheetState extends State<_FilterSheet> {
     final categories = ['All', ...AppConstants.expenseCategories];
 
     return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: const BorderRadius.vertical(
           top: Radius.circular(AppConstants.borderRadiusLarge),
         ),
       ),
@@ -801,15 +799,15 @@ class _FilterSheetState extends State<_FilterSheet> {
               height: 4,
               margin: const EdgeInsets.symmetric(vertical: 12),
               decoration: BoxDecoration(
-                color: AppConstants.textLightGray,
+                color: Theme.of(context).colorScheme.outline,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
           ),
 
           // Title
-          const Padding(
-            padding: EdgeInsets.fromLTRB(
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
               AppConstants.paddingLarge, 4,
               AppConstants.paddingLarge, AppConstants.paddingMedium,
             ),
@@ -818,20 +816,20 @@ class _FilterSheetState extends State<_FilterSheet> {
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
-                color: AppConstants.textDark,
+                color: Theme.of(context).colorScheme.onSurface,
               ),
             ),
           ),
 
           // Category section
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: AppConstants.paddingLarge),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppConstants.paddingLarge),
             child: Text(
               'CATEGORY',
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w700,
-                color: AppConstants.textLightGray,
+                color: Theme.of(context).colorScheme.outline,
                 letterSpacing: 1.0,
               ),
             ),
@@ -855,7 +853,7 @@ class _FilterSheetState extends State<_FilterSheet> {
                     duration: const Duration(milliseconds: 180),
                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                     decoration: BoxDecoration(
-                      color: sel ? AppConstants.primaryGreen : Colors.white,
+                      color: sel ? AppConstants.primaryGreen : Theme.of(context).colorScheme.surface,
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
                         color: sel
@@ -867,7 +865,7 @@ class _FilterSheetState extends State<_FilterSheet> {
                       cat,
                       style: TextStyle(
                         fontSize: 13,
-                        color: sel ? Colors.white : AppConstants.textMediumGray,
+                        color: sel ? Colors.white : Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
                   ),
@@ -879,14 +877,14 @@ class _FilterSheetState extends State<_FilterSheet> {
           const SizedBox(height: AppConstants.paddingMedium),
 
           // Sort section
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: AppConstants.paddingLarge),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppConstants.paddingLarge),
             child: Text(
               'SORT BY',
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w700,
-                color: AppConstants.textLightGray,
+                color: Theme.of(context).colorScheme.outline,
                 letterSpacing: 1.0,
               ),
             ),
@@ -962,7 +960,7 @@ class _SortOption extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 8),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: selected ? AppConstants.primaryGreen : Colors.white,
+          color: selected ? AppConstants.primaryGreen : Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: selected
@@ -974,7 +972,7 @@ class _SortOption extends StatelessWidget {
           label,
           style: TextStyle(
             fontSize: 13,
-            color: selected ? Colors.white : AppConstants.textMediumGray,
+            color: selected ? Colors.white : Theme.of(context).colorScheme.onSurfaceVariant,
           ),
         ),
       ),

@@ -71,12 +71,12 @@ class _MainNavShellState extends State<MainNavShell> {
                   ),
                 ),
                 const SizedBox(height: AppConstants.paddingLarge),
-                const Text(
+                Text(
                   'Add Expense',
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
-                    color: AppConstants.textDark,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
                 const SizedBox(height: AppConstants.paddingLarge),
@@ -216,7 +216,6 @@ class _MainNavShellState extends State<MainNavShell> {
       bottomNavigationBar: BottomAppBar(
         shape: const CircularNotchedRectangle(),
         notchMargin: 8,
-        color: AppConstants.backgroundColor,
         elevation: 8,
         padding: EdgeInsets.zero,
         height: 70,

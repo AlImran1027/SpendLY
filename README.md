@@ -51,7 +51,7 @@ BDT (৳), USD ($), EUR (€), GBP (£), INR (Rs.), JPY (¥), CAD (C$), AUD (A$)
 - Firebase email/password authentication with password reset
 - Push notifications via `flutter_local_notifications`
 - Date format and language preferences
-- Dark mode toggle (persisted; theme switch coming soon)
+- Dark mode with full theme switching — all screens adapt automatically
 - Staggered entrance animations throughout
 
 ---
@@ -121,6 +121,7 @@ lib/
 │   ├── lm_studio_service.dart   # Local LM Studio receipt extraction
 │   ├── split_bill_service.dart  # Firestore split-bill logic
 │   ├── currency_service.dart    # ChangeNotifier — global currency formatting
+│   ├── theme_service.dart       # ValueNotifier — dark / light mode toggle
 │   └── notification_service.dart # OS push notifications
 ├── utils/
 │   └── constants.dart           # Colors, spacing, route names, categories
@@ -294,10 +295,9 @@ ReceiptCaptureScreen  →  ReceiptPreviewScreen  →  ExtractionResultsScreen
 
 | Area | Status |
 |------|--------|
-| Auth backend | UI-complete; simulated via Firebase Auth (no custom backend) |
-| Dark mode | Toggle persisted but theme switch not wired to `ThemeData` |
+| Auth | Firebase email/password only — no social login (Google, Apple) or MFA |
 | Profile email change | Shows snackbar stub; edit flow not yet built |
-| Release signing | `android/app/build.gradle.kts` still uses debug keys |
+| Release signing | `android/app/build.gradle.kts` still uses debug keys for release builds |
 | State management | Uses `StatefulWidget` only; `providers/` directory reserved for future upgrade |
 
 ---

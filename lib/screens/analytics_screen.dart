@@ -248,7 +248,6 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAF8),
       body: SafeArea(
         child: _isLoading
             ? const Center(
@@ -281,17 +280,16 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
 
   Widget _buildAppBar() {
     return SliverAppBar(
-      backgroundColor: const Color(0xFFF8FAF8),
       elevation: 0,
       floating: true,
       snap: true,
       titleSpacing: AppConstants.paddingLarge,
-      title: const Text(
+      title: Text(
         'Analytics',
         style: TextStyle(
           fontSize: 26,
           fontWeight: FontWeight.w800,
-          color: AppConstants.textDark,
+          color: Theme.of(context).colorScheme.onSurface,
         ),
       ),
     );
@@ -310,7 +308,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
       child: Container(
         height: 42,
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(AppConstants.borderRadiusMedium),
           border: Border.all(color: Colors.grey.withValues(alpha: 0.15)),
         ),
@@ -338,7 +336,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
-                      color: selected ? Colors.white : AppConstants.textMediumGray,
+                      color: selected ? Colors.white : Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
                 ),
@@ -464,20 +462,20 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
         children: [
           Row(
             children: [
-              const Text(
+              Text(
                 'Spending Trend',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
-                  color: AppConstants.textDark,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
               const Spacer(),
               Text(
                 _avgLabel,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
-                  color: AppConstants.textMediumGray,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
               const SizedBox(width: 4),
@@ -514,12 +512,12 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'By Category',
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w700,
-              color: AppConstants.textDark,
+              color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
           const SizedBox(height: AppConstants.paddingMedium),
@@ -559,19 +557,19 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
                           Expanded(
                             child: Text(
                               c.name,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 12,
-                                color: AppConstants.textMediumGray,
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
                               ),
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
                           Text(
                             '${pct.toStringAsFixed(0)}%',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
-                              color: AppConstants.textDark,
+                              color: Theme.of(context).colorScheme.onSurface,
                             ),
                           ),
                         ],
@@ -605,12 +603,12 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Top Categories',
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w700,
-              color: AppConstants.textDark,
+              color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
           const SizedBox(height: AppConstants.paddingMedium),
@@ -635,19 +633,19 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
                       Expanded(
                         child: Text(
                           c.name,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 13,
-                            color: AppConstants.textDark,
+                            color: Theme.of(context).colorScheme.onSurface,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
                       ),
                       Text(
                         CurrencyService.instance.format(c.amount),
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w700,
-                          color: AppConstants.textDark,
+                          color: Theme.of(context).colorScheme.onSurface,
                         ),
                       ),
                     ],
@@ -694,12 +692,12 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Key Insights',
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w700,
-              color: AppConstants.textDark,
+              color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
           const SizedBox(height: 12),
@@ -757,7 +755,7 @@ class _SectionCard extends StatelessWidget {
       margin: margin,
       padding: const EdgeInsets.all(AppConstants.paddingMedium),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(AppConstants.borderRadiusMedium),
         boxShadow: [
           BoxShadow(
@@ -796,7 +794,7 @@ class _InsightTile extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(AppConstants.borderRadiusMedium),
         boxShadow: [
           BoxShadow(
@@ -821,28 +819,28 @@ class _InsightTile extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 10,
-              color: AppConstants.textLightGray,
+              color: Theme.of(context).colorScheme.outline,
               letterSpacing: 0.3,
             ),
           ),
           const SizedBox(height: 2),
           Text(
             value,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w700,
-              color: AppConstants.textDark,
+              color: Theme.of(context).colorScheme.onSurface,
             ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
           Text(
             sub,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 10,
-              color: AppConstants.textMediumGray,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
@@ -923,9 +921,9 @@ class _SpendingBarChartState extends State<_SpendingBarChart>
               child: Text(
                 d.label,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 10,
-                  color: AppConstants.textMediumGray,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
             );
@@ -1049,17 +1047,17 @@ class _DonutChartState extends State<_DonutChart>
             children: [
               Text(
                 '\$${widget.total.toStringAsFixed(0)}',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w800,
-                  color: AppConstants.textDark,
+                  color: Theme.of(ctx).colorScheme.onSurface,
                 ),
               ),
-              const Text(
+              Text(
                 'total',
                 style: TextStyle(
                   fontSize: 10,
-                  color: AppConstants.textLightGray,
+                  color: Theme.of(ctx).colorScheme.outline,
                 ),
               ),
             ],

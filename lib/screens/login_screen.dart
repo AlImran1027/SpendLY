@@ -184,7 +184,6 @@ class _LoginScreenState extends State<LoginScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppConstants.backgroundColor,
       body: SafeArea(
         child: FadeTransition(
           opacity: _fadeIn,
@@ -280,23 +279,23 @@ class _LoginScreenState extends State<LoginScreen>
 
   /// "Welcome back" heading + subtitle.
   Widget _buildWelcomeText() {
-    return const Column(
+    return Column(
       children: [
         Text(
           'Welcome Back',
           style: TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.w700,
-            color: AppConstants.textDark,
+            color: Theme.of(context).colorScheme.onSurface,
           ),
         ),
-        SizedBox(height: AppConstants.paddingSmall),
+        const SizedBox(height: AppConstants.paddingSmall),
         Text(
           'Sign in to continue tracking your expenses',
           textAlign: TextAlign.center,
           style: TextStyle(
             fontSize: 14,
-            color: AppConstants.textMediumGray,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
         ),
       ],
@@ -386,7 +385,7 @@ class _LoginScreenState extends State<LoginScreen>
                 _obscurePassword
                     ? Icons.visibility_outlined
                     : Icons.visibility_off_outlined,
-                color: AppConstants.textMediumGray,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
                 size: 22,
               ),
               onPressed: () {
@@ -435,22 +434,22 @@ class _LoginScreenState extends State<LoginScreen>
 
   /// Horizontal divider with centred "OR" text.
   Widget _buildDivider() {
-    return const Row(
+    return Row(
       children: [
-        Expanded(child: Divider(color: AppConstants.textLightGray)),
+        Expanded(child: Divider(color: Theme.of(context).colorScheme.outline)),
         Padding(
           padding:
-              EdgeInsets.symmetric(horizontal: AppConstants.paddingMedium),
+              const EdgeInsets.symmetric(horizontal: AppConstants.paddingMedium),
           child: Text(
             'OR',
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w500,
-              color: AppConstants.textMediumGray,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
         ),
-        Expanded(child: Divider(color: AppConstants.textLightGray)),
+        Expanded(child: Divider(color: Theme.of(context).colorScheme.outline)),
       ],
     );
   }

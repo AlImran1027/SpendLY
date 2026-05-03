@@ -296,23 +296,23 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen>
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppConstants.borderRadiusMedium),
         ),
-        title: const Text(
+        title: Text(
           'Discard Changes?',
           style: TextStyle(
             fontWeight: FontWeight.bold,
-            color: AppConstants.textDark,
+            color: Theme.of(context).colorScheme.onSurface,
           ),
         ),
-        content: const Text(
+        content: Text(
           'You have unsaved changes. Are you sure you want to leave?',
-          style: TextStyle(fontSize: 14, color: AppConstants.textMediumGray),
+          style: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.onSurfaceVariant),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text(
+            child: Text(
               'Stay',
-              style: TextStyle(color: AppConstants.textMediumGray),
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
             ),
           ),
           ElevatedButton(
@@ -372,21 +372,19 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen>
         if (!didPop && _formDirty) _showUnsavedChangesDialog();
       },
       child: Scaffold(
-        backgroundColor: AppConstants.backgroundColor,
         appBar: AppBar(
-          backgroundColor: AppConstants.backgroundColor,
           elevation: 0,
           centerTitle: true,
           leading: IconButton(
             icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
             onPressed: _isLoading ? null : _handleCancel,
           ),
-          title: const Text(
+          title: Text(
             'Change Password',
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
-              color: AppConstants.textDark,
+              color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
         ),
@@ -521,21 +519,21 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen>
             ),
           ),
           const SizedBox(height: AppConstants.paddingMedium),
-          const Text(
+          Text(
             'Update Your Password',
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
-              color: AppConstants.textDark,
+              color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
           const SizedBox(height: 4),
-          const Text(
+          Text(
             'Keep your account secure with a strong password',
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 12,
-              color: AppConstants.textMediumGray,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
         ],
@@ -631,7 +629,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen>
           _obscureCurrent
               ? Icons.visibility_outlined
               : Icons.visibility_off_outlined,
-          color: AppConstants.textMediumGray,
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
           size: 22,
         ),
         onPressed: () {
@@ -657,7 +655,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen>
           _obscureNew
               ? Icons.visibility_outlined
               : Icons.visibility_off_outlined,
-          color: AppConstants.textMediumGray,
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
           size: 22,
         ),
         onPressed: () {
@@ -706,7 +704,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen>
               _obscureConfirm
                   ? Icons.visibility_outlined
                   : Icons.visibility_off_outlined,
-              color: AppConstants.textMediumGray,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
               size: 22,
             ),
             onPressed: () {
@@ -787,7 +785,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen>
             text,
             style: TextStyle(
               fontSize: 12,
-              color: met ? AppConstants.primaryGreen : AppConstants.textMediumGray,
+              color: met ? AppConstants.primaryGreen : Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
         ],
@@ -806,18 +804,18 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen>
         borderRadius: BorderRadius.circular(AppConstants.borderRadiusSmall),
         border: Border.all(color: const Color(0xFFBBDEFB)),
       ),
-      child: const Row(
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.info_outline, color: AppConstants.infoBlue, size: 20),
-          SizedBox(width: AppConstants.paddingSmall),
+          const Icon(Icons.info_outline, color: AppConstants.infoBlue, size: 20),
+          const SizedBox(width: AppConstants.paddingSmall),
           Expanded(
             child: Text(
               'Use a strong password with a mix of uppercase, lowercase, '
               'numbers, and special characters to keep your account secure.',
               style: TextStyle(
                 fontSize: 13,
-                color: AppConstants.textDark,
+                color: Theme.of(context).colorScheme.onSurface,
                 height: 1.4,
               ),
             ),
@@ -839,7 +837,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen>
             MediaQuery.of(context).padding.bottom,
       ),
       decoration: BoxDecoration(
-        color: AppConstants.backgroundColor,
+        color: Theme.of(context).colorScheme.surface,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.04),
@@ -855,7 +853,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen>
             child: OutlinedButton(
               onPressed: _isLoading ? null : _handleCancel,
               style: OutlinedButton.styleFrom(
-                foregroundColor: AppConstants.textDark,
+                foregroundColor: Theme.of(context).colorScheme.onSurface,
                 side: const BorderSide(color: Color(0xFFE0E0E0)),
                 minimumSize: const Size(0, 56),
                 shape: RoundedRectangleBorder(
@@ -938,7 +936,7 @@ class _SuccessModal extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: AppConstants.paddingXLarge),
         child: Material(
           borderRadius: BorderRadius.circular(AppConstants.borderRadiusMedium),
-          color: Colors.white,
+          color: Theme.of(context).colorScheme.surface,
           elevation: 8,
           child: Padding(
             padding: const EdgeInsets.all(AppConstants.paddingXLarge),
@@ -971,23 +969,23 @@ class _SuccessModal extends StatelessWidget {
 
                 const SizedBox(height: AppConstants.paddingLarge),
 
-                const Text(
+                Text(
                   'Password Updated',
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
-                    color: AppConstants.textDark,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
 
                 const SizedBox(height: AppConstants.paddingSmall),
 
-                const Text(
+                Text(
                   "Your password has been successfully changed.\nYou're all set!",
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 14,
-                    color: AppConstants.textMediumGray,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                     height: 1.5,
                   ),
                 ),

@@ -63,6 +63,16 @@ class AuthService {
     await prefs.setString(AppConstants.prefUserName, name.trim());
   }
 
+  /// Updates the photo URL in Firebase Auth and syncs the Firestore userProfile.
+  Future<void> updatePhotoURL(String url) async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+    await user.updatePhotoURL(url);
+    try {
+      await SplitBillService.instance.saveCurrentUserProfile();
+    } catch (_) {}
+  }
+
   /// Re-authenticates then updates the password in Firebase Auth.
   Future<void> changePassword(
       String currentPassword, String newPassword) async {

@@ -248,7 +248,6 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAF8), // very subtle off-white green
       body: SafeArea(
         child: _isLoading
             ? const Center(
@@ -347,23 +346,24 @@ class _HomeScreenState extends State<HomeScreen> {
 
   /// Greeting row: greeting emoji + user name.
   Widget _buildGreetingHeader() {
+    final colorScheme = Theme.of(context).colorScheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           '$_greeting 👋',
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 14,
-            color: AppConstants.textMediumGray,
+            color: colorScheme.onSurfaceVariant,
           ),
         ),
         const SizedBox(height: 2),
         Text(
           _userName,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.w800,
-            color: AppConstants.textDark,
+            color: colorScheme.onSurface,
           ),
         ),
       ],
@@ -420,7 +420,7 @@ class _HomeScreenState extends State<HomeScreen> {
         horizontal: AppConstants.paddingLarge,
       ),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius:
             BorderRadius.circular(AppConstants.borderRadiusMedium),
         boxShadow: [
@@ -526,23 +526,23 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
               const SizedBox(height: AppConstants.paddingLarge),
-              const Text(
+              Text(
                 'No Expenses Yet',
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w700,
-                  color: AppConstants.textDark,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
               const SizedBox(height: AppConstants.paddingSmall),
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 48),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 48),
                 child: Text(
                   'Tap the camera button below to scan your\nfirst receipt and start tracking!',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 14,
-                    color: AppConstants.textMediumGray,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                     height: 1.5,
                   ),
                 ),
@@ -579,12 +579,12 @@ class _HomeScreenState extends State<HomeScreen> {
               const Icon(Icons.call_split,
                   size: 16, color: Color(0xFFE65100)),
               const SizedBox(width: 6),
-              const Text(
+              Text(
                 'Split Requests',
                 style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w700,
-                  color: AppConstants.textDark,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
               const SizedBox(width: 6),
@@ -620,7 +620,7 @@ class _HomeScreenState extends State<HomeScreen> {
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius:
             BorderRadius.circular(AppConstants.borderRadiusMedium),
         border: Border.all(
@@ -656,17 +656,17 @@ class _HomeScreenState extends State<HomeScreen> {
                   children: [
                     Text(
                       split.merchant,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
-                        color: AppConstants.textDark,
+                        color: Theme.of(context).colorScheme.onSurface,
                       ),
                     ),
                     Text(
                       'From $fromLabel · Split ${split.splitCount} ways',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
-                        color: AppConstants.textMediumGray,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
                   ],
@@ -802,17 +802,17 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
+          Row(
             children: [
-              Icon(Icons.warning_amber_rounded,
+              const Icon(Icons.warning_amber_rounded,
                   size: 16, color: AppConstants.warningAmber),
-              SizedBox(width: 6),
+              const SizedBox(width: 6),
               Text(
                 'Split Updates',
                 style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w700,
-                  color: AppConstants.textDark,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
             ],
@@ -832,7 +832,7 @@ class _HomeScreenState extends State<HomeScreen> {
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius:
             BorderRadius.circular(AppConstants.borderRadiusMedium),
         border: Border.all(
@@ -867,17 +867,17 @@ class _HomeScreenState extends State<HomeScreen> {
                   children: [
                     Text(
                       split.merchant,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
-                        color: AppConstants.textDark,
+                        color: Theme.of(context).colorScheme.onSurface,
                       ),
                     ),
                     Text(
                       '$names declined the split',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
-                        color: AppConstants.textMediumGray,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
                   ],
@@ -885,10 +885,10 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               Text(
                 CurrencyService.instance.format(split.amountPerPerson),
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
-                  color: AppConstants.textDark,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
             ],
