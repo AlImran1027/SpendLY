@@ -148,7 +148,7 @@ class DatabaseService {
 
   Future<void> upsertBudget(
       String category, int year, int month, double amount) async {
-    final docId = '${category}_${year}_$month';
+    final docId = '${category.replaceAll('/', '_')}_${year}_$month';
     await _budgets.doc(docId).set({
       'category': category,
       'year': year,

@@ -110,7 +110,7 @@ app.*.map.json
 **/ios/**/*.pbxuser
 **/ios/**/xcuserdata/
 
-# ─── Environment / secrets ────────────────────────────────────────────────────
+# ─── Environment / secrets ────────────────────────────────────────────────────xq
 .env
 .env.*
 *.keystore
